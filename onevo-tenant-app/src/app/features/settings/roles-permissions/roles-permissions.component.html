@@ -1,0 +1,173 @@
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-6">Roles & Permissions Admin</h1>
+
+  <!-- Tabs -->
+  <div class="flex space-x-4 border-b mb-6 pb-2">
+    <button [class.font-bold]="activeTab === 'session'" (click)="activeTab = 'session'" class="px-4 py-2 hover:bg-gray-100 rounded">Session Entitlements</button>
+    <button [class.font-bold]="activeTab === 'roles'" (click)="activeTab = 'roles'" class="px-4 py-2 hover:bg-gray-100 rounded">Roles</button>
+    <button [class.font-bold]="activeTab === 'users'" (click)="activeTab = 'users'" class="px-4 py-2 hover:bg-gray-100 rounded">Users & Overrides</button>
+    <button [class.font-bold]="activeTab === 'catalog'" (click)="activeTab = 'catalog'" class="px-4 py-2 hover:bg-gray-100 rounded">Filtered Catalog</button>
+  </div>
+
+  <!-- Session Entitlements Tab -->
+  <div *ngIf="activeTab === 'session'">
+    <h2 class="text-xl font-semibold mb-4">Current Session</h2>
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="p-4 border rounded">
+        <h3 class="font-semibold mb-2">Active Modules</h3>
+        <ul class="list-disc pl-5">
+          <li *ngFor="let m of appContext.activeModules()">{{ m }}</li>
+        </ul>
+      </div>
+      <div class="p-4 border rounded">
+        <h3 class="font-semibold mb-2">Active Features</h3>
+        <ul class="list-disc pl-5">
+          <li *ngFor="let f of appContext.activeFeatures()">{{ f }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 class="text-xl font-semibold mb-4">Module & Feature Entitlements</h2>
+    <p *ngIf="entitlementError" class="mb-4 p-3 border border-red-300 bg-red-50 text-red-700 rounded text-sm">{{ entitlementError }}</p>
+    <div class="grid grid-cols-1 gap-4">
+      <div *ngFor="let m of entitlements" class="p-4 border rounded">
+        <div class="flex justify-between items-center mb-2">
+          <div>
+            <span class="font-bold">{{ m.displayName }}</span>
+            <span class="ml-2 font-mono text-xs text-gray-500">{{ m.moduleKey }}</span>
+            <span *ngIf="m.isFoundation" class="ml-2 text-xs bg-gray-200 px-2 py-1 rounded">Foundation</span>
+          </div>
+          <button (click)="toggleModule(m)"
+                  [disabled]="m.isFoundation"
+                  [ngClass]="m.isEnabled ? 'bg-red-600' : 'bg-blue-600'"
+                  class="text-white px-4 py-1 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ m.isEnabled ? 'Disable' : 'Enable' }}
+          </button>
+        </div>
+        <ul class="pl-4 space-y-1">
+          <li *ngFor="let f of m.features" class="flex justify-between items-center text-sm">
+            <span class="font-mono" [class.text-gray-400]="!f.isEnabled">{{ f.featureKey }}</span>
+            <button (click)="toggleFeature(f)"
+                    [ngClass]="f.isEnabled ? 'bg-red-600' : 'bg-blue-600'"
+                    class="text-white px-3 py-1 rounded text-xs">
+              {{ f.isEnabled ? 'Disable' : 'Enable' }}
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Roles Tab -->
+  <div *ngIf="activeTab === 'roles'">
+    <div class="mb-6 p-4 border rounded">
+      <h2 class="text-lg font-semibold mb-2">Create New Role</h2>
+      <div class="flex space-x-2">
+        <input type="text" [(ngModel)]="newRoleName" placeholder="Role Name" class="border p-2 rounded flex-1">
+        <input type="text" [(ngModel)]="newRoleDesc" placeholder="Description" class="border p-2 rounded flex-1">
+        <button (click)="createRole()" class="bg-blue-600 text-white px-4 py-2 rounded">Create</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6">
+      <div *ngFor="let role of roles" class="p-4 border rounded">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="font-bold text-lg">{{ role.name }}</h3>
+            <p class="text-sm text-gray-600">{{ role.description }}</p>
+          </div>
+          <span class="text-xs bg-gray-200 px-2 py-1 rounded" *ngIf="role.isSystemRole">System Role</span>
+        </div>
+
+        <p class="text-xs text-gray-500 mb-2" *ngIf="role.permissionCodes.length > 0">
+          Granted: {{ role.permissionCodes.join(', ') }}
+        </p>
+
+        <h4 class="font-semibold mb-2">Permissions:</h4>
+        <div class="grid grid-cols-3 gap-2">
+          <label *ngFor="let p of catalog" class="flex items-center space-x-2 text-sm">
+            <input type="checkbox"
+                   [checked]="roleHasPermission(role, p.id)"
+                   (change)="toggleRolePermission(role, p.id)"
+                   [disabled]="role.isSystemRole">
+            <span>{{ p.code }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users & Overrides Tab -->
+  <div *ngIf="activeTab === 'users'">
+    <div class="mb-6 p-4 border rounded">
+      <h2 class="text-lg font-semibold mb-2">Assign Role</h2>
+      <div class="flex space-x-2">
+        <select [(ngModel)]="selectedUserIdForAssignment" class="border p-2 rounded flex-1">
+          <option value="">Select User...</option>
+          <option *ngFor="let u of users" [value]="u.id">{{ u.displayName }} ({{ u.email }})</option>
+        </select>
+        <select [(ngModel)]="selectedRoleIdForAssignment" class="border p-2 rounded flex-1">
+          <option value="">Select Role...</option>
+          <option *ngFor="let r of roles" [value]="r.id">{{ r.name }}</option>
+        </select>
+        <button (click)="assignRoleToUser()" class="bg-blue-600 text-white px-4 py-2 rounded">Assign</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+      <div>
+        <h2 class="text-lg font-semibold mb-4">Users</h2>
+        <ul class="space-y-2">
+          <li *ngFor="let user of users" class="p-3 border rounded flex justify-between items-center">
+            <div>
+              <div class="font-medium">{{ user.displayName }}</div>
+              <div class="text-sm text-gray-600">{{ user.email }}</div>
+            </div>
+            <button (click)="loadOverrides(user.id)" class="text-blue-600 hover:underline text-sm">Manage Overrides</button>
+          </li>
+        </ul>
+      </div>
+
+      <div *ngIf="selectedUserId" class="p-4 border rounded bg-gray-50">
+        <h2 class="text-lg font-semibold mb-4">Overrides for User</h2>
+        
+        <div class="flex space-x-2 mb-6">
+          <select [(ngModel)]="overridePermissionId" class="border p-2 rounded flex-1">
+            <option value="">Select Permission...</option>
+            <option *ngFor="let p of catalog" [value]="p.id">{{ p.code }}</option>
+          </select>
+          <select [(ngModel)]="grantType" class="border p-2 rounded">
+            <option value="grant">Grant</option>
+            <option value="revoke">Revoke</option>
+          </select>
+          <button (click)="createOverride()" class="bg-green-600 text-white px-4 py-2 rounded">Add</button>
+        </div>
+
+        <ul class="space-y-2">
+          <li *ngFor="let o of overrides" class="flex justify-between items-center p-2 bg-white border rounded">
+            <div>
+              <span class="font-medium">{{ o.permissionCode }}</span>
+              <span class="ml-2 text-xs px-2 py-1 rounded" [ngClass]="{'bg-green-100 text-green-800': o.grantType === 'grant', 'bg-red-100 text-red-800': o.grantType === 'revoke'}">
+                {{ o.grantType | uppercase }}
+              </span>
+            </div>
+            <button (click)="revokeOverride(o.id)" class="text-red-600 hover:underline text-sm">Remove</button>
+          </li>
+          <li *ngIf="overrides.length === 0" class="text-sm text-gray-500 italic">No overrides set.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Catalog Tab -->
+  <div *ngIf="activeTab === 'catalog'">
+    <h2 class="text-xl font-semibold mb-4">Permission Catalog (Filtered by Entitlements)</h2>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div *ngFor="let p of catalog" class="p-3 border rounded">
+        <div class="font-mono text-sm font-bold text-blue-700">{{ p.code }}</div>
+        <div class="text-sm text-gray-600 mt-1">{{ p.description }}</div>
+        <div class="text-xs text-gray-400 mt-2">Module: {{ p.module || 'Foundation' }}</div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,1689 @@
+Before building, remove any folders/files from the previous wrong structure if they exist.
+
+Remove these folders if present:
+- Common/
+- Constants/
+- BackgroundJobs/
+
+Do not recreate them.
+
+If any files already exist inside those folders, move only the useful concepts into the approved structure:
+
+- Common/Result.cs
+  Do not keep it for now. Use normal DTO responses instead.
+
+- Common/CurrentUser.cs
+  Move the concept into Services/Implementations/CurrentUserService.cs
+  and Services/Interfaces/ICurrentUserService.cs.
+
+- Common/Constants/ModuleKeys.cs
+- Common/Constants/FeatureKeys.cs
+- Common/Constants/PermissionKeys.cs
+- Common/Constants/PlatformPermissionKeys.cs
+  Do not keep these as constants for this phase.
+  Seed exact strings inside Data/Seed seed files.
+
+- BackgroundJobs/OutboxPublisherService.cs
+  Move to Services/Notifications/OutboxPublisherService.cs.
+
+Allowed final folders only:
+- Controllers/
+- DTOs/
+- Models/
+- Data/
+- Repositories/
+- Services/
+- Middleware/
+- Filters/
+
+Allowed Services subfolders:
+- Services/Interfaces/
+- Services/Implementations/
+- Services/Notifications/
+
+Allowed Data subfolders:
+- Data/Configurations/
+- Data/Migrations/
+- Data/Seed/
+
+
+
+You are building the backend foundation for a learning clone of ONEVO-HR.
+
+Build only inside:
+
+C:\onevoNew\test\backend
+
+Do not create frontend files.
+Do not create Angular apps.
+Do not create a Developer Platform frontend.
+
+Backend target:
+- ASP.NET Core MVC/Web API
+- .NET 10
+- PostgreSQL
+- EF Core with Npgsql
+- One backend project only
+- Basic MVC folder structure
+- DTOs
+- Models/entities
+- Repositories
+- Services with interfaces and implementations
+- Middleware
+- Filters
+- Seed data
+
+Do not create:
+- Clean Architecture solution
+- multiple backend projects
+- Application/Domain/Infrastructure projects
+- MediatR
+- CQRS
+- vertical slice architecture
+- microservices
+- Common folder
+- Constants folder
+- BackgroundJobs folder
+
+Use only this folder structure:
+
+onevo-hr-api/
+├── Controllers/
+├── DTOs/
+├── Models/
+├── Data/
+│   ├── AppDbContext.cs
+│   ├── Configurations/
+│   ├── Migrations/
+│   └── Seed/
+├── Repositories/
+│   ├── Interfaces/
+│   └── Implementations/
+├── Services/
+│   ├── Interfaces/
+│   ├── Implementations/
+│   └── Notifications/
+├── Middleware/
+├── Filters/
+├── Program.cs
+├── appsettings.json
+└── appsettings.Development.json
+
+Core backend rules:
+1. Controllers call services only.
+2. Services call repositories only.
+3. Repositories call AppDbContext only.
+4. Controllers must not inject AppDbContext.
+5. Services must not directly use DbSet or raw EF Core queries.
+6. Use DTOs for request/response.
+7. Use Models for database entities.
+8. Use HttpOnly cookie/session auth for tenant users.
+9. Do not send access/JWT tokens to frontend.
+10. Developer Platform auth can also use HttpOnly cookies for this learning project.
+11. Tenant-facing APIs use /api/v1/*.
+12. Developer Platform APIs use /admin/v1/*.
+13. Developer Platform data must exist, but do not build Developer Platform UI.
+
+Database:
+Use PostgreSQL, not SQL Server.
+
+Use package:
+- Npgsql.EntityFrameworkCore.PostgreSQL
+
+Connection string in appsettings.Development.json:
+
+"ConnectionStrings": {
+  "DefaultConnection": "Host=localhost;Port=5432;Database=onevo_hr_test;Username=postgres;Password=postgres"
+}
+
+Register AppDbContext in Program.cs with UseNpgsql.
+
+Use:
+- Guid primary keys
+- jsonb for payload/snapshot fields where needed
+- DateTime UTC values
+- indexes on tenant_id, email, status, module_key, feature_key, permission_key
+
+Important product lifecycle:
+- Public user books/applies for demo.
+- Super Admin approves demo request in Developer Platform.
+- Approval creates demo workspace tenant.
+- In database, demo workspace tenant status is trial.
+- Customer uses demo workspace.
+- Customer upgrades/activates from demo.
+- Customer gives real company details and confirmed employee count.
+- Customer selects allowed paid plan/add-ons and billing cycle.
+- Backend creates first invoice.
+- Tenant status becomes pending_payment.
+- After payment succeeds, tenant becomes active.
+- Active tenant gets paid subscription, paid entitlements, resource limits, and setup templates applied.
+
+Correct lifecycle:
+DemoRequest -> Trial/Demo Tenant -> Pending Payment -> Active Tenant
+
+Do not model the main demo flow as:
+DemoRequest -> Provisioning Draft -> Active
+
+Provisioning status is for operator-created paid drafts only.
+
+==================================================
+1. Developer Platform Models
+==================================================
+
+Folder:
+Models/DeveloperPlatform/
+
+Create:
+- PlatformUser
+- PlatformRole
+- PlatformPermission
+- PlatformRolePermission
+- PlatformUserRole
+- PlatformUserSession
+- PlatformAuthEvent
+- DemoRequest
+
+PlatformUser:
+- Id
+- Email
+- PasswordHash
+- DisplayName
+- IsActive
+- MfaEnabled
+- CreatedAtUtc
+- UpdatedAtUtc
+
+PlatformRole:
+- Id
+- Name
+- Description
+- IsSystemRole
+- CreatedAtUtc
+
+PlatformPermission:
+- Id
+- PermissionKey
+- Description
+- Category
+- IsActive
+
+PlatformRolePermission:
+- Id
+- PlatformRoleId
+- PlatformPermissionId
+
+PlatformUserRole:
+- Id
+- PlatformUserId
+- PlatformRoleId
+
+PlatformUserSession:
+- Id
+- PlatformUserId
+- SessionTokenHash
+- ExpiresAtUtc
+- CreatedAtUtc
+- RevokedAtUtc nullable
+
+PlatformAuthEvent:
+- Id
+- PlatformUserId nullable
+- Email
+- EventType
+- IpAddress
+- UserAgent
+- CreatedAtUtc
+
+DemoRequest:
+- Id
+- CompanyName
+- ContactName
+- BusinessEmail
+- Country
+- RequestedCompanySizeRange
+- RequestedDemoProfileId nullable
+- Status: submitted, approved, rejected, converted_to_demo
+- Source: landing_demo_form
+- CreatedAtUtc
+- ReviewedAtUtc nullable
+- ReviewedByPlatformUserId nullable
+- RejectionReason nullable
+- ConvertedTenantId nullable
+
+Seed platform permissions in Data/Seed:
+- platform.tenants.read
+- platform.tenants.manage
+- platform.tenants.activate
+- platform.subscriptions.read
+- platform.subscriptions.manage
+- platform.module_catalog.read
+- platform.module_catalog.manage
+- platform.demo_profiles.read
+- platform.demo_profiles.manage
+- platform.requests.read
+- platform.requests.manage
+- platform.support.read
+- platform.support.manage
+- platform.accounts.read
+- platform.accounts.manage
+- platform.roles.read
+- platform.roles.manage
+- platform.templates.read
+- platform.templates.manage
+- platform.runtime_flags.read
+- platform.runtime_flags.manage
+- platform.security.read
+- platform.security.manage
+- platform.audit.read
+- platform.reports.read
+- platform.system_config.read
+- platform.system_config.manage
+- platform.operations.read
+- platform.operations.manage
+- platform.app_catalog.read
+- platform.app_catalog.manage
+
+Seed platform roles:
+- Platform Super Admin
+- Tenant Operations Manager
+- Billing Manager
+- Security Auditor
+- Module Catalog Manager
+- Operations Engineer
+- Read-Only Viewer
+
+Seed platform user:
+- platform.admin@onevo.test
+- Password123!
+- Platform Super Admin
+- active: true
+
+Hash passwords properly. Do not store plain text passwords.
+
+==================================================
+2. Tenant / Lifecycle Models
+==================================================
+
+Folder:
+Models/Tenant/
+
+Create:
+- Tenant
+- TenantDomain
+- TenantProvisioningState
+- TenantActivationChecklist
+
+Tenant:
+- Id
+- Name
+- Slug
+- Status: provisioning, trial, trial_expired, pending_payment, active, suspended, cancelled
+- Source: operator_provisioning, demo_request
+- SourceDemoRequestId nullable
+- DemoProfileId nullable
+- EstimatedEmployeeCount nullable
+- ConfirmedEmployeeCount nullable
+- TrialStartsAtUtc nullable
+- TrialEndsAtUtc nullable
+- CreatedAtUtc
+- ActivatedAtUtc nullable
+
+Important:
+- trial = active demo workspace.
+- pending_payment = demo upgrade submitted and first invoice open.
+- active = paid activated tenant.
+- provisioning = operator-created paid draft only.
+
+TenantDomain:
+- Id
+- TenantId
+- Domain
+- IsPrimary
+- CreatedAtUtc
+
+TenantProvisioningState:
+- Id
+- TenantId
+- CurrentStep
+- OrganizationInfoCompletedAtUtc nullable
+- AdminAccountCompletedAtUtc nullable
+- SubscriptionCompletedAtUtc nullable
+- ModuleSelectionCompletedAtUtc nullable
+- TemplateApplicationCompletedAtUtc nullable
+- ActivationReady
+- ActivationBlockedReason nullable
+- LastUpdatedAtUtc
+
+TenantActivationChecklist:
+- Id
+- TenantId
+- Key
+- Label
+- IsCompleted
+- CompletedAtUtc nullable
+- RequiredForActivation
+
+==================================================
+3. Catalog / Subscription / Billing Models
+==================================================
+
+Folders:
+Models/Catalog/
+Models/Subscriptions/
+
+Create:
+- ModuleCatalog
+- ModuleFeature
+- PermissionCatalog
+- ModulePermissionOwnership
+- FeaturePermission
+- SubscriptionPlan
+- SubscriptionPlanFeature
+- SubscriptionPlanPriceBracket
+- SubscriptionAddOn
+- TenantSubscription
+- TenantModuleEntitlement
+- TenantFeatureEntitlement
+- RuntimeFeatureFlag
+- TenantResourceLimit
+- SubscriptionInvoice
+
+ModuleCatalog:
+- Id
+- ModuleKey
+- DisplayName
+- Description
+- IsFoundation
+- IsSellable
+- IsActive
+- SupportsStorage
+- SupportsAi
+- CreatedAtUtc
+
+Do not include:
+- Pillar
+
+ModuleFeature:
+- Id
+- ModuleCatalogId
+- FeatureKey
+- IsActive
+
+Do not include:
+- Name
+- Description
+- IsDefaultIncluded
+
+Reason:
+Feature keys are stable backend identifiers. They must not be renamed or redefined by admin data.
+
+PermissionCatalog:
+- Id
+- PermissionKey
+- DisplayName
+- Description
+- Category
+- IsTenantPermission
+- IsPlatformPermission
+- IsActive
+
+ModulePermissionOwnership:
+- Id
+- ModuleCatalogId
+- PermissionCatalogId
+
+FeaturePermission:
+- Id
+- ModuleFeatureId
+- PermissionCatalogId
+
+SubscriptionPlan:
+- Id
+- Name
+- Code
+- BillingCycle: monthly, annual
+- IsActive
+- SharedBaseStorageGb
+- SharedBaseAiTokenAllowance
+- CreatedAtUtc
+
+SubscriptionPlanFeature:
+- Id
+- SubscriptionPlanId
+- ModuleFeatureId
+
+SubscriptionPlanPriceBracket:
+- Id
+- SubscriptionPlanId
+- EmployeeRangeMin
+- EmployeeRangeMax nullable
+- MonthlyPrice
+- AnnualPrice
+
+SubscriptionAddOn:
+- Id
+- AddOnKey
+- Name
+- AddOnType: module, resource
+- ModuleCatalogId nullable
+- StorageContributionGb nullable
+- AiTokenContribution nullable
+- IsActive
+
+TenantSubscription:
+- Id
+- TenantId
+- SubscriptionPlanId nullable
+- Status: demo, pending_payment, active, cancelled
+- BillingCycle nullable
+- ConfirmedEmployeeCount nullable
+- SelectedFeatureKeysJson jsonb
+- SelectedAddOnsJson jsonb
+- StartsAtUtc nullable
+- EndsAtUtc nullable
+- CreatedAtUtc
+
+TenantModuleEntitlement:
+- Id
+- TenantId
+- ModuleCatalogId
+- State: disabled, trial, subscription_included, purchased, quoted
+- RuntimeOverride nullable
+- IsEnabled
+
+TenantFeatureEntitlement:
+- Id
+- TenantId
+- ModuleFeatureId
+- IsEnabled
+
+RuntimeFeatureFlag:
+- Id
+- TenantId nullable
+- FeatureKey
+- IsEnabled
+- Reason nullable
+- CreatedAtUtc
+
+TenantResourceLimit:
+- Id
+- TenantId
+- StorageLimitGb
+- AiTokenLimit
+- EmployeeLimit nullable
+- Source: demo_profile, paid_plan, override
+- CreatedAtUtc
+
+SubscriptionInvoice:
+- Id
+- TenantId
+- TenantSubscriptionId
+- InvoiceNumber
+- Status: draft, open, paid, void, failed
+- Amount
+- Currency
+- DueAtUtc nullable
+- PaidAtUtc nullable
+- CreatedAtUtc
+
+Rules:
+- ModuleCatalog defines possible product modules.
+- ModuleFeature defines possible feature keys.
+- PermissionCatalog defines permission keys.
+- ModulePermissionOwnership defines which module owns a permission.
+- FeaturePermission defines which feature must exist for a permission.
+- TenantSubscription.SelectedFeatureKeysJson defines what the tenant commercially selected.
+- RuntimeFeatureFlag cannot grant features outside tenant selected features.
+- User role permissions cannot grant access outside tenant entitlement.
+
+==================================================
+4. Demo Profile Models
+==================================================
+
+Folder:
+Models/Demo/
+
+Create:
+- DemoProfile
+- DemoProfileModuleAccess
+- DemoProfileFeatureAccess
+- DemoProfileUpgradeOption
+- DemoProfileAllowedAddOn
+
+DemoProfile:
+- Id
+- Name
+- Description
+- TrialDurationDays
+- AutoExpire
+- MaxEmployees
+- DemoStorageLimitGb
+- DemoAiTokenLimit
+- IsActive
+- CreatedAtUtc
+
+DemoProfileModuleAccess:
+- Id
+- DemoProfileId
+- ModuleCatalogId
+- AccessLevel: disabled, limited, full
+
+DemoProfileFeatureAccess:
+- Id
+- DemoProfileId
+- ModuleFeatureId
+- IsEnabled
+
+DemoProfileUpgradeOption:
+- Id
+- DemoProfileId
+- SubscriptionPlanId
+- IsAllowed
+
+DemoProfileAllowedAddOn:
+- Id
+- DemoProfileId
+- SubscriptionAddOnId
+- IsAllowed
+
+Rules:
+- DemoProfile controls demo workspace behavior.
+- DemoProfile controls trial duration, max employees, storage limit, AI limit, module access, feature access, allowed plans, and allowed add-ons.
+- DemoProfile does not create paid subscriptions.
+- Paid plans do not store demo/trial duration.
+
+==================================================
+5. Auth / User / Role Models
+==================================================
+
+Folder:
+Models/Auth/
+
+Create:
+- User
+- UserSession
+- Role
+- UserRole
+- RolePermission
+- PositionRoleAssignment
+
+User:
+- Id
+- TenantId
+- Email
+- PasswordHash
+- DisplayName
+- EmployeeId nullable
+- IsActive
+- CreatedAtUtc
+
+UserSession:
+- Id
+- UserId
+- TenantId
+- SessionTokenHash
+- CsrfTokenHash
+- ExpiresAtUtc
+- CreatedAtUtc
+- RevokedAtUtc nullable
+
+Role:
+- Id
+- TenantId
+- Name
+- Description
+- IsSystemRole
+- SourceTemplateId nullable
+- CreatedAtUtc
+
+UserRole:
+- Id
+- UserId
+- RoleId
+- ScopeType nullable
+- ScopeTargetId nullable
+- CreatedAtUtc
+
+Important UserRole scope rule:
+- UserRole is for roles manually assigned directly to a user.
+- ScopeType and ScopeTargetId are optional manual scope fields.
+- These fields must not replace position-derived scope.
+- Use them only when manually giving a user a role with a specific scope.
+
+Examples:
+- ScopeType null + ScopeTargetId null = no manual scope override.
+- ScopeType = department + ScopeTargetId = DepartmentId.
+- ScopeType = legal_entity + ScopeTargetId = LegalEntityId.
+- ScopeType = tenant + ScopeTargetId null.
+- ScopeType = own + ScopeTargetId null.
+- ScopeType = direct_reports + ScopeTargetId null.
+
+RolePermission:
+- Id
+- RoleId
+- PermissionCatalogId
+
+PositionRoleAssignment:
+- Id
+- TenantId
+- PositionId
+- RoleId
+- CreatedAtUtc
+
+Rules:
+- Roles can be assigned directly to users through UserRole.
+- Roles can also be assigned/linked to positions through PositionRoleAssignment.
+- Position role assignment is required because position affects access shape.
+- Assigning a role to a position is authorization-sensitive.
+- For PositionRoleAssignment, scope is derived automatically from org chart, department, legal entity, and position hierarchy.
+- For UserRole, manual scope can be stored in ScopeType/ScopeTargetId.
+
+Effective permission source:
+- direct user roles
+- position-linked roles
+
+Effective scope source:
+- direct UserRole manual scope if present
+- otherwise position-derived scope
+- tenant owner role can resolve to tenant-level scope
+
+==================================================
+6. Organization Models
+==================================================
+
+Folder:
+Models/OrgStructure/
+
+Create:
+- LegalEntity
+- Department
+- Position
+- PositionReportingHistory
+- PositionAssignment
+- EmployeeHierarchyClosure
+
+LegalEntity:
+- Id
+- TenantId
+- Name
+- Code
+- Status
+- CreatedAtUtc
+
+Department:
+- Id
+- TenantId
+- LegalEntityId
+- Name
+- Code
+- ParentDepartmentId nullable
+- HeadPositionId nullable
+- Status
+- CreatedAtUtc
+
+Position:
+- Id
+- TenantId
+- LegalEntityId
+- DepartmentId
+- Name
+- Code
+- ReportsToPositionId nullable
+- Capacity
+- PositionType: unique, pooled
+- Status
+- SuggestedRoleId nullable
+- CreatedAtUtc
+
+PositionReportingHistory:
+- Id
+- TenantId
+- PositionId
+- ReportsToPositionId nullable
+- EffectiveFromUtc
+- EffectiveToUtc nullable
+
+PositionAssignment:
+- Id
+- TenantId
+- PositionId
+- EmployeeId
+- StartsAtUtc
+- EndsAtUtc nullable
+- IsPrimary
+
+EmployeeHierarchyClosure:
+- Id
+- TenantId
+- ManagerEmployeeId
+- ReportEmployeeId
+- Depth
+
+Rules:
+- Positions are first-class org seats.
+- Employees are assigned to positions.
+- Reporting hierarchy is derived from positions.
+- Do not store manager_id on Employee.
+- Position belongs to one legal entity.
+- Department belongs to one legal entity.
+- Position can report only to a position in same legal entity.
+- Pooled positions cannot be reporting targets.
+- Root positions are allowed.
+- Position creation happens from the org chart feature.
+- Department head scope comes from Department.HeadPositionId.
+- Legal entity-level scope can be derived from top position placement/legal entity leadership rules.
+- Multi-legal-entity scope can be derived when one user has active position assignments in multiple legal entities.
+
+Use one feature key:
+- org.positions
+
+Do not create:
+- org.org_chart
+- org.reporting
+- org.hierarchy_scope
+
+org.positions includes:
+- view org chart
+- view position list
+- view assignments tab
+- create root position
+- create child position
+- edit position
+- change reports-to
+- assign employee to position
+- assign role to position
+- change position capacity/type/status
+
+Permissions:
+- org:positions:read
+- org:positions:manage
+- org:position-assignments:manage
+- org:position-roles:manage
+
+==================================================
+7. Employee Models
+==================================================
+
+Folder:
+Models/Employees/
+
+Create:
+- Employee
+- EmployeeProfile
+- EmployeeAssignmentHistory
+
+Employee:
+- Id
+- TenantId
+- EmployeeNumber
+- FirstName
+- LastName
+- WorkEmail
+- Status
+- HireDate
+- LegalEntityId
+- DepartmentId nullable
+- CurrentPositionId nullable
+- CreatedAtUtc
+
+EmployeeProfile:
+- Id
+- EmployeeId
+- JobTitle
+- PhoneNumber nullable
+- Location nullable
+
+EmployeeAssignmentHistory:
+- Id
+- TenantId
+- EmployeeId
+- DepartmentId nullable
+- PositionId nullable
+- EffectiveFromUtc
+- EffectiveToUtc nullable
+- Reason nullable
+
+==================================================
+8. Template Models
+==================================================
+
+Folder:
+Models/Templates/
+
+Create:
+- RoleTemplate
+- RoleTemplateVersion
+- RoleTemplatePermission
+- ConfigurationTemplate
+- TenantConfigurationTemplateApplication
+
+RoleTemplate:
+- Id
+- Name
+- Description
+- ModuleKeysJson jsonb
+- IsSystem
+- IsActive
+- CreatedAtUtc
+
+RoleTemplateVersion:
+- Id
+- RoleTemplateId
+- Version
+- PayloadJson jsonb
+- CreatedAtUtc
+
+RoleTemplatePermission:
+- Id
+- RoleTemplateId
+- PermissionCatalogId
+
+ConfigurationTemplate:
+- Id
+- TemplateKey
+- TemplateType: configuration, position_template, leave_policy, monitoring_policy, app_allowlist, onboarding, data_import_mapping
+- Name
+- Description
+- Version
+- EmployeeRangeMin nullable
+- EmployeeRangeMax nullable
+- IndustryProfileTag nullable
+- PayloadJson jsonb
+- IsSystem
+- IsActive
+- CreatedAtUtc
+
+TenantConfigurationTemplateApplication:
+- Id
+- TenantId
+- ConfigurationTemplateId
+- TemplateType
+- AppliedVersion
+- Status: applied, superseded, customized
+- AppliedAtUtc
+- AppliedByPlatformUserId nullable
+- CustomPayloadJson nullable jsonb
+
+Rules:
+- Do not create many half-modeled template tables.
+- Use ConfigurationTemplate with typed jsonb payload.
+- Role templates are separate.
+- Applying templates creates real tenant records.
+- Global templates are not mutated when applied.
+- Reapply creates/supersedes TenantConfigurationTemplateApplication row.
+- Company-size ranges live on ConfigurationTemplate where relevant.
+- Data import mapping can be a global configuration template and does not need to differ by company size in this phase.
+
+Position template payload example:
+
+{
+  "positions": [
+    {
+      "position_key": "ceo",
+      "position_name": "CEO / Owner",
+      "department_name": "Executive",
+      "reports_to_position_key": null,
+      "capacity": 1,
+      "position_type": "unique",
+      "linked_role_template_id": "uuid-or-null"
+    },
+    {
+      "position_key": "engineering-manager",
+      "position_name": "Engineering Manager",
+      "department_name": "Engineering",
+      "reports_to_position_key": "ceo",
+      "capacity": 1,
+      "position_type": "unique",
+      "linked_role_template_id": "uuid-or-null"
+    }
+  ]
+}
+
+Position template rules:
+- Template payload uses template-local keys because real tenant IDs do not exist yet.
+- During application, create/find departments from department_name.
+- Create positions.
+- Resolve reports_to_position_key to real Position.Id.
+- Materialize linked role templates into tenant roles.
+- Link/suggest roles to positions.
+- Record application history.
+
+Leave policy template payload example:
+
+{
+  "leave_types": [
+    {
+      "code": "annual",
+      "name": "Annual Leave",
+      "entitlement_days": 20,
+      "requires_approval": true,
+      "carry_forward_allowed": true,
+      "carry_forward_limit": 5,
+      "assignment_scope": "tenant",
+      "department_template_keys": [],
+      "position_template_keys": []
+    },
+    {
+      "code": "engineering_special",
+      "name": "Engineering Special Leave",
+      "entitlement_days": 3,
+      "requires_approval": true,
+      "carry_forward_allowed": false,
+      "carry_forward_limit": 0,
+      "assignment_scope": "department",
+      "department_template_keys": ["Engineering"],
+      "position_template_keys": []
+    }
+  ]
+}
+
+Leave policy template rules:
+- assignment_scope = tenant means whole tenant.
+- assignment_scope = department means resolve created tenant department.
+- assignment_scope = position means resolve created tenant position.
+- After application, real assignment rows use Department.Id or Position.Id.
+
+Seed position template ranges:
+- 1-10: Starter Position Template
+- 11-50: Small Business Position Template
+- 51-100: Growth Position Template
+- 101-500: Mid-Market Position Template
+- 501-1000: Enterprise Position Template
+- 1001+: Large Enterprise Position Template
+
+==================================================
+9. Leave / Calendar / Automation / Notifications
+==================================================
+
+Folders:
+Models/Leave/
+Models/Calendar/
+Models/Workflow/
+Models/Notifications/
+
+Leave:
+- LeaveType
+- LeavePolicy
+- LeavePolicyAssignment
+- LeaveRequest
+- LeaveBalance
+
+LeaveType:
+- Id
+- TenantId
+- Code
+- Name
+- IsPaid
+- RequiresApproval
+- IsActive
+
+LeavePolicy:
+- Id
+- TenantId
+- LeaveTypeId
+- EntitlementDays
+- CarryForwardAllowed
+- CarryForwardLimit
+- RequiresApproval
+- CreatedAtUtc
+
+LeavePolicyAssignment:
+- Id
+- TenantId
+- LeavePolicyId
+- AssignmentScope: tenant, department, position
+- DepartmentId nullable
+- PositionId nullable
+
+LeaveRequest:
+- Id
+- TenantId
+- EmployeeId
+- LeaveTypeId
+- StartDate
+- EndDate
+- Status: draft, submitted, approved, rejected, cancelled
+- ConflictSnapshotJson nullable jsonb
+- CreatedAtUtc
+
+LeaveBalance:
+- Id
+- TenantId
+- EmployeeId
+- LeaveTypeId
+- EntitledDays
+- UsedDays
+- RemainingDays
+- Year
+
+Calendar:
+- CalendarEvent
+- Holiday
+
+CalendarEvent:
+- Id
+- TenantId
+- Title
+- StartAtUtc
+- EndAtUtc
+- AudienceType: tenant, department, team, individual
+- AudienceId nullable
+
+Holiday:
+- Id
+- TenantId
+- Name
+- Date
+- CountryCode nullable
+
+Workflow:
+- WorkflowDefinition
+- WorkflowStep
+- WorkflowRun
+- ApprovalTask
+
+WorkflowDefinition:
+- Id
+- TenantId
+- Name
+- TriggerKey
+- IsActive
+- CreatedAtUtc
+
+WorkflowStep:
+- Id
+- WorkflowDefinitionId
+- StepType
+- SortOrder
+- ConfigJson jsonb
+
+WorkflowRun:
+- Id
+- WorkflowDefinitionId
+- TenantId
+- Status
+- StartedAtUtc
+- CompletedAtUtc nullable
+
+ApprovalTask:
+- Id
+- TenantId
+- WorkflowRunId nullable
+- AssignedToEmployeeId nullable
+- ResolverType
+- ResolverConfigJson jsonb
+- Status
+- CreatedAtUtc
+- CompletedAtUtc nullable
+
+Automation resolver types:
+- ReportingManager
+- DepartmentHead
+- SpecificRole
+- SpecificPosition
+- SpecificEmployee
+
+Do not add:
+- HR Admin
+- Tenant Owner
+
+Reason:
+Those are roles and must be handled through SpecificRole.
+
+Notifications:
+- Notification
+- OutboxMessage
+
+Notification:
+- Id
+- TenantId
+- UserId nullable
+- Title
+- Body
+- IsRead
+- CreatedAtUtc
+
+OutboxMessage:
+- Id
+- TenantId nullable
+- Type
+- PayloadJson jsonb
+- Status: pending, published, failed
+- RetryCount
+- CreatedAtUtc
+- PublishedAtUtc nullable
+
+Outbox services go under:
+Services/Notifications/
+
+Create:
+- IOutboxService
+- OutboxService
+- OutboxPublisherService
+
+==================================================
+10. Seed Module / Feature / Permission Catalog
+==================================================
+
+Seed exact strings in Data/Seed.
+Do not create Constants folder.
+
+organization:
+Features:
+- org.legal_entities
+- org.departments
+- org.positions
+
+Permissions:
+- org:legal-entities:read -> org.legal_entities
+- org:legal-entities:manage -> org.legal_entities
+- org:departments:read -> org.departments
+- org:departments:manage -> org.departments
+- org:positions:read -> org.positions
+- org:positions:manage -> org.positions
+- org:position-assignments:manage -> org.positions
+- org:position-roles:manage -> org.positions
+
+employees:
+Features:
+- employees.directory
+- employees.profile
+- employees.import
+
+Permissions:
+- employees:read -> employees.directory
+- employees:write -> employees.directory
+- employees:read-own -> employees.profile
+- employees:import -> employees.import
+
+roles_permissions:
+Features:
+- roles.manage
+- permissions.catalog
+- access.assignments
+
+Permissions:
+- roles:read -> roles.manage
+- roles:manage -> roles.manage
+- permissions:read -> permissions.catalog
+- permissions:manage -> permissions.catalog
+- access:assign -> access.assignments
+
+leave:
+Features:
+- leave.requests
+- leave.balances
+- leave.policies
+- leave.approvals
+
+Permissions:
+- leave:create -> leave.requests
+- leave:read -> leave.requests
+- leave:read-own -> leave.requests
+- leave:approve -> leave.approvals
+- leave:policies:read -> leave.policies
+- leave:policies:manage -> leave.policies
+
+calendar:
+Features:
+- calendar.events
+- calendar.holidays
+- calendar.leave_conflicts
+
+Permissions:
+- calendar:read -> calendar.events
+- calendar:manage -> calendar.events
+- calendar:holidays:manage -> calendar.holidays
+
+Do not create separate permission for leave conflicts unless there is a dedicated action/screen.
+
+automation:
+Features:
+- automation.builder
+- automation.approvals
+- automation.notifications
+- automation.conditions
+- automation.tasks
+
+Permissions:
+- automation:read -> automation.builder
+- automation:manage -> automation.builder
+- automation:run -> automation.tasks
+- approval:act -> automation.approvals
+
+settings:
+Features:
+- settings.general
+- settings.security
+- settings.policies
+- settings.devices
+- settings.billing
+- settings.integrations
+- settings.app_allowlist
+- settings.monitoring
+
+Permissions:
+- settings:read -> settings.general
+- settings:manage -> settings.general
+- settings:security:read -> settings.security
+- settings:security:manage -> settings.security
+- settings:policies:read -> settings.policies
+- settings:policies:manage -> settings.policies
+- devices:read -> settings.devices
+- devices:manage -> settings.devices
+- billing:read -> settings.billing
+- billing:manage -> settings.billing
+- integrations:read -> settings.integrations
+- integrations:manage -> settings.integrations
+- app-allowlist:read -> settings.app_allowlist
+- app-allowlist:manage -> settings.app_allowlist
+- monitoring:read -> settings.monitoring
+- monitoring:manage -> settings.monitoring
+
+notifications:
+Features:
+- notifications.inbox
+- notifications.email
+- notifications.realtime
+
+Permissions:
+- notifications:read -> notifications.inbox
+- notifications:manage -> notifications.email
+
+==================================================
+11. Scope / RLS Foundation
+==================================================
+
+Do not create general manual scope rule tables in this phase.
+
+Scope is derived from:
+- active user
+- active employee
+- active position assignments
+- position hierarchy
+- department head position
+- legal entity
+- direct user roles
+- position role assignments
+
+Manual scope is allowed only on UserRole:
+- UserRole.ScopeType
+- UserRole.ScopeTargetId
+
+That is only for manually assigned roles, not normal position-derived access.
+
+Scope levels:
+- Own
+- DirectReports
+- Department
+- DepartmentAndChildren
+- LegalEntity
+- MultiLegalEntity
+- Tenant
+
+Create service interfaces:
+- ICurrentUserService
+- ITenantContextService
+- IPermissionService
+- IFeatureGateService
+- IScopeResolverService
+
+Scope examples:
+- Employee role from own position: Own
+- Manager position with reports: DirectReports
+- Department head: Department
+- Top legal entity position: LegalEntity
+- User assigned to positions in multiple legal entities: MultiLegalEntity
+- Tenant owner role: Tenant
+- Direct UserRole with ScopeType = department: that specific department
+- Direct UserRole with ScopeType = legal_entity: that specific legal entity
+
+For this learning backend:
+- implement RLS-style filtering in services/repositories
+- do not implement real PostgreSQL row-level security policies yet
+
+==================================================
+12. Middleware / Filters
+==================================================
+
+Create middleware:
+- TenantResolutionMiddleware
+- CsrfMiddleware
+- PermissionMiddleware
+- RlsMiddleware
+
+Create filter:
+- RequirePermissionAttribute
+
+Behavior:
+- TenantResolutionMiddleware resolves tenant from X-Tenant-Domain or request host.
+- Cookie auth identifies user.
+- CSRF middleware protects unsafe methods.
+- Permission check validates permission, feature, entitlement, runtime flag, and user role.
+- RlsMiddleware prepares tenant/user/scope context.
+
+Dev headers:
+- X-Tenant-Domain
+- X-Legal-Entity-Id optional
+
+==================================================
+13. Repositories / Services
+==================================================
+
+Repositories:
+- ITenantRepository / TenantRepository
+- IUserRepository / UserRepository
+- IRoleRepository / RoleRepository
+- IPermissionRepository / PermissionRepository
+- IModuleCatalogRepository / ModuleCatalogRepository
+- ISubscriptionRepository / SubscriptionRepository
+- IDemoProfileRepository / DemoProfileRepository
+- IDemoRequestRepository / DemoRequestRepository
+- ITemplateRepository / TemplateRepository
+- IOrgRepository / OrgRepository
+- IEmployeeRepository / EmployeeRepository
+- ILeaveRepository / LeaveRepository
+- IWorkflowRepository / WorkflowRepository
+- IOutboxRepository / OutboxRepository
+
+Services:
+- IAuthService / AuthService
+- IPlatformAuthService / PlatformAuthService
+- IDemoRequestService / DemoRequestService
+- IDemoApprovalService / DemoApprovalService
+- IDemoUpgradeService / DemoUpgradeService
+- ITenantProvisioningService / TenantProvisioningService
+- ITenantActivationService / TenantActivationService
+- ISubscriptionService / SubscriptionService
+- IModuleCatalogService / ModuleCatalogService
+- IPermissionService / PermissionService
+- IFeatureGateService / FeatureGateService
+- IScopeResolverService / ScopeResolverService
+- ITemplateApplicationService / TemplateApplicationService
+- IOrgStructureService / OrgStructureService
+- IEmployeeService / EmployeeService
+- ILeaveService / LeaveService
+- IWorkflowService / WorkflowService
+- IOutboxService / OutboxService
+
+Keep methods minimal but real enough for:
+- login
+- current app context
+- permission catalog
+- demo request approval
+- demo upgrade quote/submit
+- org/position data
+- employee data
+- leave basics
+
+==================================================
+14. Controllers
+==================================================
+
+Tenant-facing:
+/api/v1/auth
+/api/v1/app-context
+/api/v1/org/legal-entities
+/api/v1/org/departments
+/api/v1/org/positions
+/api/v1/employees
+/api/v1/roles
+/api/v1/permissions
+/api/v1/leave
+/api/v1/demo/upgrade
+/api/v1/trial-extension
+/api/v1/notifications
+
+Developer Platform:
+/admin/v1/auth
+/admin/v1/tenants
+/admin/v1/demo-requests
+/admin/v1/demo-profiles
+/admin/v1/subscription-plans
+/admin/v1/module-catalog
+/admin/v1/templates
+/admin/v1/platform-users
+/admin/v1/platform-roles
+
+Controllers call services only.
+
+==================================================
+15. Seed Data
+==================================================
+
+Create:
+Data/Seed/DatabaseSeeder.cs
+
+Seed order:
+1. Platform permissions
+2. Platform roles
+3. Platform admin user
+4. Tenant permission catalog
+5. Module catalog
+6. Module features
+7. Module permission ownership
+8. Feature-permission mapping
+9. Subscription plans
+10. Subscription plan features
+11. Subscription price brackets
+12. Subscription add-ons
+13. Demo profiles
+14. Demo profile module access
+15. Demo profile feature access
+16. Demo profile upgrade options
+17. Demo requests
+18. Configuration templates
+19. Role templates
+20. Active tenant
+21. Active tenant domain
+22. Active tenant subscription
+23. Active tenant resource limits
+24. Active tenant module entitlements
+25. Active tenant feature entitlements
+26. Legal entity
+27. Departments
+28. Tenant roles
+29. Tenant role permissions
+30. Positions
+31. Position reporting history
+32. Employees
+33. Users
+34. User roles
+35. Position assignments
+36. Position role assignments
+37. Demo/trial tenant from approved demo request
+38. Demo tenant owner user
+39. Outbox messages
+
+Seed demo request:
+- companyName: Beta Systems
+- contactName: Demo Buyer
+- businessEmail: buyer@beta.test
+- country: United States
+- requestedCompanySizeRange: 51-200
+- status: submitted
+- source: landing_demo_form
+
+Seed approved demo tenant:
+- name: Beta Systems
+- domain: beta.test
+- status: trial
+- demoProfile: Standard Demo
+- trial duration from demo profile
+- max employees from demo profile
+- storage/AI limits from demo profile
+- demo owner email: owner@beta.test
+- password: Password123!
+
+Seed active tenant:
+- name: Acme HR
+- domain: acme.test
+- status: active
+- confirmedEmployeeCount: 120
+- setup template range: 101-500
+- paid subscription: active
+
+Acme legal entity:
+- Acme Global
+
+Acme departments:
+- Executive
+- People Operations
+- Engineering
+- Finance
+
+Acme positions:
+1. CEO / Owner
+   - department: Executive
+   - reportsTo: null
+   - employee: Priya Sharma
+   - role: Tenant Owner
+
+2. HR Manager
+   - department: People Operations
+   - reportsTo: CEO / Owner
+   - employee: Maria Gomez
+   - role: HR Admin
+
+3. Engineering Manager
+   - department: Engineering
+   - reportsTo: CEO / Owner
+   - employee: Daniel Chen
+   - role: Manager
+
+4. Software Engineer
+   - department: Engineering
+   - reportsTo: Engineering Manager
+   - employee: Asha Perera
+   - role: Employee
+
+Acme users:
+- owner@acme.test / Password123!
+- hr.admin@acme.test / Password123!
+- manager@acme.test / Password123!
+- employee@acme.test / Password123!
+
+Tenant roles:
+- Tenant Owner
+- HR Admin
+- Manager
+- Employee
+
+Tenant Owner:
+- all tenant permissions enabled for Acme
+- tenant-level scope
+
+HR Admin:
+- employees:read
+- employees:write
+- employees:import
+- org:legal-entities:read
+- org:departments:read
+- org:departments:manage
+- org:positions:read
+- org:positions:manage
+- org:position-assignments:manage
+- org:position-roles:manage
+- roles:read
+- permissions:read
+- leave:policies:read
+- leave:policies:manage
+- settings:read
+- settings:policies:manage
+
+Manager:
+- employees:read
+- org:positions:read
+- leave:read
+- leave:approve
+- calendar:read
+- approval:act
+- notifications:read
+- scope derived from Engineering Manager position
+
+Employee:
+- employees:read-own
+- leave:create
+- leave:read-own
+- calendar:read
+- notifications:read
+- own scope
+
+==================================================
+16. EF Configuration
+==================================================
+
+Use Fluent API under:
+Data/Configurations/
+
+Add unique indexes:
+- PlatformUser.Email
+- Tenant.Slug
+- TenantDomain.Domain
+- User: TenantId + Email
+- ModuleCatalog.ModuleKey
+- ModuleFeature.FeatureKey
+- PermissionCatalog.PermissionKey
+- Role: TenantId + Name
+- Department: TenantId + LegalEntityId + Code
+- Position: TenantId + LegalEntityId + Code
+- Employee: TenantId + EmployeeNumber
+
+Configure relationships:
+- Tenant -> TenantDomains
+- Tenant -> Users
+- Tenant -> Employees
+- Tenant -> LegalEntities
+- LegalEntity -> Departments
+- LegalEntity -> Positions
+- Department -> Positions
+- Department.HeadPositionId -> Position
+- Position -> ReportsToPosition
+- Position -> PositionAssignments
+- Position -> PositionRoleAssignments
+- Employee -> PositionAssignments
+- Role -> RolePermissions
+- Role -> UserRoles
+- Role -> PositionRoleAssignments
+- ModuleCatalog -> ModuleFeatures
+- ModuleCatalog -> ModulePermissionOwnership
+- ModuleFeature -> FeaturePermissions
+- DemoProfile -> DemoProfileModuleAccess
+- DemoProfile -> DemoProfileFeatureAccess
+- TenantSubscription -> Tenant
+
+Use restrict/no action delete behavior for important relationships.
+Avoid accidental cascade delete of tenant data.
+
+==================================================
+17. Required Commands
+==================================================
+
+After implementation run:
+
+dotnet restore
+dotnet build
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+
+If dotnet-ef is missing:
+- say dotnet-ef is missing
+- provide:
+  dotnet tool install --global dotnet-ef
+- do not pretend migrations were created
+
+==================================================
+18. Required Final Output
+==================================================
+
+Report:
+1. Final folder structure.
+2. PostgreSQL connection string location.
+3. Models created.
+4. Seeded login accounts.
+5. Migration name.
+6. Whether database update succeeded.
+7. Whether build succeeded.
+8. Any missing tooling or failure.
+
+Do not claim runtime behavior works unless tested.

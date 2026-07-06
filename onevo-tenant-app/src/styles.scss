@@ -1,0 +1,109 @@
+@use "@angular/material" as mat;
+@import "tailwindcss";
+
+$theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$azure-palette,
+  ),
+  typography: (
+    brand-family: 'Inter, sans-serif',
+    plain-family: 'Inter, sans-serif',
+  ),
+));
+
+html {
+  @include mat.all-component-themes($theme);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #08080b;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+}
+
+// ── Primary filled button: white bg / black text ──────────────────────────────
+.mat-mdc-unelevated-button.mat-primary {
+  --mdc-filled-button-container-color: #fff;
+  --mdc-filled-button-label-text-color: #000;
+  --mdc-filled-button-hover-state-layer-opacity: 0;
+  &:hover { --mdc-filled-button-container-color: #e5e5e5; }
+  &:disabled {
+    --mdc-filled-button-container-color: rgba(255,255,255,0.1);
+    --mdc-filled-button-label-text-color: rgba(255,255,255,0.3);
+  }
+}
+
+// ── Stroked button: white outline / white text ────────────────────────────────
+.mat-mdc-outlined-button {
+  --mdc-outlined-button-outline-color: rgba(255,255,255,0.18);
+  --mdc-outlined-button-label-text-color: rgba(255,255,255,0.7);
+  &:hover { --mdc-outlined-button-outline-color: rgba(255,255,255,0.35); }
+}
+
+// ── Icon button ───────────────────────────────────────────────────────────────
+.mat-mdc-icon-button { --mdc-icon-button-icon-color: rgba(255,255,255,0.45); }
+
+// ── Outlined form field ───────────────────────────────────────────────────────
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-outline-color: rgba(255,255,255,0.12);
+  --mdc-outlined-text-field-hover-outline-color: rgba(255,255,255,0.28);
+  --mdc-outlined-text-field-focus-outline-color: rgba(255,255,255,0.7);
+  --mdc-outlined-text-field-label-text-color: rgba(255,255,255,0.45);
+  --mdc-outlined-text-field-hover-label-text-color: rgba(255,255,255,0.6);
+  --mdc-outlined-text-field-focus-label-text-color: rgba(255,255,255,0.8);
+  --mdc-outlined-text-field-input-text-color: rgba(255,255,255,0.9);
+  --mdc-outlined-text-field-caret-color: #fff;
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+.mat-mdc-header-cell { color: rgba(255,255,255,0.45) !important; }
+.mat-mdc-cell { color: rgba(255,255,255,0.85) !important; }
+
+// ── Expansion panel ───────────────────────────────────────────────────────────
+.mat-expansion-panel {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 8px !important;
+  margin-bottom: 6px;
+}
+.mat-expansion-panel-header { color: rgba(255,255,255,0.8) !important; }
+.mat-expansion-panel-header-description { color: rgba(255,255,255,0.4) !important; }
+
+// ── Stepper ───────────────────────────────────────────────────────────────────
+.mat-step-header .mat-step-icon-selected {
+  background-color: #fff !important;
+  color: #000 !important;
+}
+.mat-step-header .mat-step-label-active { color: rgba(255,255,255,0.85) !important; }
+.mat-step-header .mat-step-label { color: rgba(255,255,255,0.4) !important; }
+
+// ── Checkbox ──────────────────────────────────────────────────────────────────
+.mat-mdc-checkbox .mdc-checkbox__background { border-color: rgba(255,255,255,0.35) !important; }
+.mat-mdc-checkbox.mat-primary .mdc-checkbox__background {
+  background-color: #fff !important;
+  border-color: #fff !important;
+  .mdc-checkbox__checkmark { color: #000 !important; }
+}
+
+// ── Chips ─────────────────────────────────────────────────────────────────────
+.mat-mdc-chip { background: rgba(255,255,255,0.07) !important; color: rgba(255,255,255,0.65) !important; }
+
+// ── Select panel ─────────────────────────────────────────────────────────────
+.mat-mdc-select-panel { background: #141414 !important; border: 1px solid rgba(255,255,255,0.1); }
+.mat-mdc-option { color: rgba(255,255,255,0.8) !important; }
+.mat-mdc-option:hover { background: rgba(255,255,255,0.05) !important; }
+.mat-mdc-option.mdc-list-item--selected { background: rgba(255,255,255,0.08) !important; }
+
+// ── Radio ─────────────────────────────────────────────────────────────────────
+.mat-mdc-radio-button .mdc-radio__outer-circle { border-color: rgba(255,255,255,0.3) !important; }
+.mat-mdc-radio-button.mat-primary .mdc-radio__inner-circle { background-color: #fff !important; }
+.mat-mdc-radio-button.mat-primary .mdc-radio__outer-circle { border-color: #fff !important; }
+
+// ── Table row hover ───────────────────────────────────────────────────────────
+.mat-mdc-row:hover { background: rgba(255,255,255,0.025) !important; }
