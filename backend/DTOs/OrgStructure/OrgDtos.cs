@@ -19,3 +19,5 @@ public sealed record CreatePositionRequestDto(
     Guid? ReportsToPositionId,
     int Capacity,
     string PositionType);
+
+public sealed record ReportingManagerDto(Guid EmployeeId, string EmployeeName);

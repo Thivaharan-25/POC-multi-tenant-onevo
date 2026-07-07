@@ -8,10 +8,12 @@ namespace OnevoHr.Api.Services.Implementations;
 public class OrgStructureService : IOrgStructureService
 {
     private readonly IOrgRepository _org;
+    private readonly IEmployeeRepository _employees;
 
-    public OrgStructureService(IOrgRepository org)
+    public OrgStructureService(IOrgRepository org, IEmployeeRepository employees)
     {
         _org = org;
+        _employees = employees;
     }
 
     public async Task<List<LegalEntityDto>> GetLegalEntitiesAsync(Guid tenantId)
@@ -81,6 +83,30 @@ public class OrgStructureService : IOrgStructureService
 
         await _org.SaveChangesAsync();
         return Map(position);
+    }
+
+    public async Task<ReportingManagerDto?> GetReportingManagerAsync(Guid tenantId, Guid positionId)
+    {
+        var position = await _org.GetPositionByIdAsync(positionId);
+        if (position == null || position.TenantId != tenantId || position.ReportsToPositionId is not Guid managerPositionId)
+        {
+            return null;
+        }
+
+        var assignments = await _org.GetActiveAssignmentsForPositionAsync(managerPositionId);
+        var assignment = assignments.FirstOrDefault(a => a.IsPrimary) ?? assignments.FirstOrDefault();
+        if (assignment == null)
+        {
+            return null;
+        }
+
+        var employee = await _employees.GetByIdAsync(assignment.EmployeeId);
+        if (employee == null || employee.TenantId != tenantId)
+        {
+            return null;
+        }
+
+        return new ReportingManagerDto(employee.Id, employee.FirstName + " " + employee.LastName);
     }
 
     private static PositionDto Map(Position p)
