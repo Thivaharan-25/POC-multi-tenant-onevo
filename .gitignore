@@ -1,0 +1,63 @@
+# ======================================================================
+# General OS/IDE
+# ======================================================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ======================================================================
+# Node / Angular Frontend (onevo-tenant-app)
+# ======================================================================
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+out-tsc/
+bazel-out/
+
+# Angular CLI cache
+.angular/
+
+# Test coverage
+coverage/
+
+# Misc
+.env
+.env.*
+
+# ======================================================================
+# .NET Core Backend (backend, backend.Tests)
+# ======================================================================
+# Build results
+[Bb]in/
+[Oo]bj/
+TestResults/
+*.TestResults
+
+# Publish output
+[Pp]ublish/
+[Pp]ublished/
+
+# Secrets & Config (Uncomment if needed)
+# appsettings.Development.json
+# appsettings.*.json
+
+# Rider/Resharper
+.idea/
+*.DotSettings.user
+
+# Mac specific
+.mac/
+
+# Logs
+*.log
