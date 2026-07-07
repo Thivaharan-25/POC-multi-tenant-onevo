@@ -19,9 +19,9 @@ public sealed class DepartmentsController : ControllerBase
 
     [HttpGet]
     [RequirePermission("org:departments:read")]
-    public async Task<IActionResult> List()
+    public async Task<IActionResult> List([FromQuery] Guid? legalEntityId)
     {
-        var departments = await _orgStructure.GetDepartmentsAsync(_tenantContext.TenantId!.Value);
+        var departments = await _orgStructure.GetDepartmentsAsync(_tenantContext.TenantId!.Value, legalEntityId);
         return Ok(departments);
     }
 }

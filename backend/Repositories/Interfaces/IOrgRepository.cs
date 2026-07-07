@@ -6,7 +6,7 @@ public interface IOrgRepository
 {
     Task<List<LegalEntity>> GetLegalEntitiesAsync(Guid tenantId);
     Task<LegalEntity?> GetLegalEntityByIdAsync(Guid id);
-    Task<List<Department>> GetDepartmentsAsync(Guid tenantId);
+    Task<List<Department>> GetDepartmentsAsync(Guid tenantId, Guid? legalEntityId);
     Task<Department?> GetDepartmentByIdAsync(Guid id);
     Task<List<Position>> GetPositionsAsync(Guid tenantId);
     Task<Position?> GetPositionByIdAsync(Guid id);

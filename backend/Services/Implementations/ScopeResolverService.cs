@@ -88,7 +88,7 @@ public class ScopeResolverService : IScopeResolverService
             return await LegalEntityScopeAsync(tenantId, legalEntityIds, "LegalEntity");
         }
 
-        var departments = await _org.GetDepartmentsAsync(tenantId);
+        var departments = await _org.GetDepartmentsAsync(tenantId, null);
         var positionIds = positions.Select(p => p.Id).ToHashSet();
         var headedDepartmentIds = departments
             .Where(d => d.HeadPositionId is not null && positionIds.Contains(d.HeadPositionId.Value))
