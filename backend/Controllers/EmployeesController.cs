@@ -17,10 +17,16 @@ public sealed class EmployeesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> List()
+    [RequirePermission("employees:read")]
+    public async Task<IActionResult> List(
+        [FromQuery] string? search,
+        [FromQuery] string? status,
+        [FromQuery] Guid? departmentId,
+        [FromQuery] Guid? positionId)
     {
         // Visibility (own / direct reports / department / tenant) is scope-filtered in the service.
-        var employees = await _employees.GetVisibleEmployeesAsync();
+        var query = new EmployeeListQuery(search, status, departmentId, positionId);
+        var employees = await _employees.GetVisibleEmployeesAsync(query);
         return Ok(employees);
     }
 
