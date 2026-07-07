@@ -125,7 +125,7 @@ public class TemplateApplicationService : ITemplateApplicationService
             await _org.AddLegalEntityAsync(legalEntity);
         }
 
-        var departments = (await _org.GetDepartmentsAsync(tenantId))
+        var departments = (await _org.GetDepartmentsAsync(tenantId, null))
             .Where(d => d.LegalEntityId == legalEntity.Id)
             .ToDictionary(d => d.Name, d => d);
 
@@ -249,7 +249,7 @@ public class TemplateApplicationService : ITemplateApplicationService
         }
 
         var now = DateTime.UtcNow;
-        var departments = await _org.GetDepartmentsAsync(tenantId);
+        var departments = await _org.GetDepartmentsAsync(tenantId, null);
 
         foreach (var item in payload.LeaveTypes)
         {

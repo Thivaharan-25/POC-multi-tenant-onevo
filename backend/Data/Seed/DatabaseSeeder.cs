@@ -4,6 +4,7 @@ using OnevoHr.Api.Models.Auth;
 using OnevoHr.Api.Models.Catalog;
 using OnevoHr.Api.Models.DeveloperPlatform;
 using OnevoHr.Api.Models.Employees;
+using OnevoHr.Api.Models.Generated;
 using OnevoHr.Api.Models.Leave;
 using OnevoHr.Api.Models.Notifications;
 using OnevoHr.Api.Models.OrgStructure;
@@ -63,6 +64,9 @@ public static class DatabaseSeeder
                 PermissionKey = key,
                 Description = key.Replace("platform.", "").Replace('.', ' '),
                 Category = key.Split('.')[1],
+                // GetPermissionKeysForUserAsync filters on IsActive — inactive
+                // seeded permissions would 403 every platform admin endpoint.
+                IsActive = true,
             });
         db.PlatformPermissions.AddRange(platformPermissions.Values);
 
@@ -232,6 +236,7 @@ public static class DatabaseSeeder
             ("org:positions:manage", "org", "org.structure_management"),
             ("org:position-assignments:manage", "org", "org.structure_management"),
             ("org:position-roles:manage", "org", "org.structure_management"),
+            ("attendance:read", "time_attendance", "time_attendance.work_schedules"),
             ("employees:read", "core_hr", "core_hr.employee_profiles"),
             ("employees:write", "core_hr", "core_hr.employee_profiles"),
             ("employees:read-own", "core_hr", "core_hr.employee_profiles"),
@@ -388,15 +393,17 @@ public static class DatabaseSeeder
         // ------------------------------------------------------------------
         var roleTemplateDefinitions = new (string Name, string[] ModuleKeys, string[] PermissionKeys)[]
         {
-            ("HR Admin", new[] { "employees", "organization", "leave", "settings" }, new[]
+            ("HR Admin", new[] { "employees", "organization", "leave", "settings", "notifications", "time_attendance" }, new[]
             {
                 "employees:read", "employees:write", "employees:import",
                 "org:legal-entities:read", "org:departments:read", "org:departments:manage",
                 "org:positions:read", "org:positions:manage",
                 "org:position-assignments:manage", "org:position-roles:manage",
+                "attendance:read",
                 "roles:read", "permissions:read",
                 "leave:policies:read", "leave:policies:manage",
-                "settings:read", "settings:policies:manage"
+                "settings:read", "settings:policies:manage",
+                "notifications:read", "notifications:manage"
             }),
             ("Manager", new[] { "employees", "leave", "calendar" }, new[]
             {
@@ -759,6 +766,20 @@ public static class DatabaseSeeder
         var engManagerPosition = MakePosition("Engineering Manager", "ENG-MGR", "Engineering", ceoPosition.Id, "Manager");
         var engineerPosition = MakePosition("Software Engineer", "SWE", "Engineering", engManagerPosition.Id, "Employee");
         db.Positions.AddRange(ceoPosition, hrManagerPosition, engManagerPosition, engineerPosition);
+
+        // Default work schedule so onboarding's schedule dropdown has a real option.
+        db.WorkSchedules.Add(new WorkSchedule
+        {
+            Id = Guid.NewGuid(),
+            TenantId = acme.Id,
+            LegalEntityId = acmeGlobal.Id,
+            Name = "Standard Weekday (Mon–Fri)",
+            Timezone = "UTC",
+            DefaultForNewEmployee = true,
+            IsActive = true,
+            CreatedAt = acme.CreatedAtUtc,
+            UpdatedAt = acme.CreatedAtUtc
+        });
 
         foreach (var position in new[] { hrManagerPosition, engManagerPosition, engineerPosition })
         {

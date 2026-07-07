@@ -22,4 +22,12 @@ export class AuthApiService {
   logout(): Observable<void> {
     return this.http.post<void>('/api/v1/auth/logout', {});
   }
+
+  validateInvitation(token: string): Observable<any> {
+    return this.http.get<any>(`/api/v1/auth/invitations/validate?token=${encodeURIComponent(token)}`);
+  }
+
+  acceptInvitation(request: any): Observable<SessionDto> {
+    return this.http.post<SessionDto>('/api/v1/auth/invitations/accept', request);
+  }
 }

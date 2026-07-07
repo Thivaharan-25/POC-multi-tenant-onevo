@@ -24,6 +24,11 @@ public class OutboxService : IOutboxService
             RetryCount = 0,
             CreatedAtUtc = DateTime.UtcNow
         });
+
+        // Standalone enqueues (e.g. login_succeeded) are not part of a wider unit
+        // of work, so the message is committed here. Flows that must stay atomic
+        // with other rows add to IOutboxRepository directly and save once.
+        await _outbox.SaveChangesAsync();
     }
 
     public async Task<List<OutboxMessage>> GetPendingAsync(int limit)

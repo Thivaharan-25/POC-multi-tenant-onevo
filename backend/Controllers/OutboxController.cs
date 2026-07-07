@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OnevoHr.Api.Data;
 using OnevoHr.Api.Filters;
 using OnevoHr.Api.Middleware;
-using OnevoHr.Api.Repositories.Implementations;
+using OnevoHr.Api.Repositories.Interfaces;
 
 namespace OnevoHr.Api.Controllers;
 
@@ -11,11 +9,11 @@ namespace OnevoHr.Api.Controllers;
 [Route("api/v1/outbox")]
 public sealed class OutboxController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly IOutboxRepository _outboxRepository;
 
-    public OutboxController(AppDbContext db)
+    public OutboxController(IOutboxRepository outboxRepository)
     {
-        _db = db;
+        _outboxRepository = outboxRepository;
     }
 
     [HttpGet("recent")]
@@ -27,7 +25,7 @@ public sealed class OutboxController : ControllerBase
             return Unauthorized(new { error = "Authentication required." });
         }
 
-        var messages = OutboxRepository.GetRecentMessages();
+        var messages = await _outboxRepository.GetRecentAsync(50);
 
         return Ok(messages);
     }

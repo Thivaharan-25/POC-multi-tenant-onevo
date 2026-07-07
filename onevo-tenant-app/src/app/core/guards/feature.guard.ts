@@ -5,5 +5,5 @@ import { PermissionService } from '../auth/permission.service';
 export const featureGuard = (feature: string): CanActivateFn => () => {
   const permissions = inject(PermissionService);
   const router = inject(Router);
-  return permissions.hasFeature(feature)() ? true : router.createUrlTree(['/403']);
+  return permissions.hasFeature(feature) ? true : router.createUrlTree(['/403']);
 };

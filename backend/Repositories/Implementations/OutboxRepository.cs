@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using OnevoHr.Api.Data;
 using OnevoHr.Api.Models.Notifications;
@@ -9,27 +8,34 @@ namespace OnevoHr.Api.Repositories.Implementations;
 public class OutboxRepository : IOutboxRepository
 {
     private readonly AppDbContext _db;
-    private static readonly ConcurrentBag<OutboxMessage> _messages = new();
 
     public OutboxRepository(AppDbContext db)
     {
         _db = db;
     }
 
-    public Task<List<OutboxMessage>> GetPendingAsync(int limit)
+    public async Task<List<OutboxMessage>> GetPendingAsync(int limit)
     {
-        var pending = _messages
+        return await _db.OutboxMessages
             .Where(m => m.Status == "pending")
             .OrderBy(m => m.CreatedAtUtc)
             .Take(limit)
-            .ToList();
-        return Task.FromResult(pending);
+            .ToListAsync();
     }
 
-    public Task AddAsync(OutboxMessage message)
+    public async Task<List<OutboxMessage>> GetRecentAsync(int limit)
     {
-        _messages.Add(message);
-        return Task.CompletedTask;
+        return await _db.OutboxMessages.AsNoTracking()
+            .OrderByDescending(m => m.CreatedAtUtc)
+            .Take(limit)
+            .ToListAsync();
+    }
+
+    public async Task AddAsync(OutboxMessage message)
+    {
+        // Intentionally no SaveChanges here: the caller's unit of work commits the
+        // outbox row in the same transaction as the business rows it belongs to.
+        await _db.OutboxMessages.AddAsync(message);
     }
 
     public async Task<List<Notification>> GetNotificationsForUserAsync(Guid tenantId, Guid userId)
@@ -48,10 +54,5 @@ public class OutboxRepository : IOutboxRepository
     public async Task SaveChangesAsync()
     {
         await _db.SaveChangesAsync();
-    }
-
-    public static List<OutboxMessage> GetRecentMessages()
-    {
-        return _messages.OrderByDescending(m => m.CreatedAtUtc).Take(50).ToList();
     }
 }

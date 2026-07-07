@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OnevoHr.Api.Data;
 using OnevoHr.Api.Data.Seed;
 using OnevoHr.Api.Middleware;
+using OnevoHr.Api.Options;
 using OnevoHr.Api.Repositories.Implementations;
 using OnevoHr.Api.Repositories.Interfaces;
 using OnevoHr.Api.Services.Implementations;
@@ -46,11 +48,15 @@ builder.Services.AddScoped<IDemoProfileRepository, DemoProfileRepository>();
 builder.Services.AddScoped<IDemoRequestRepository, DemoRequestRepository>();
 builder.Services.AddScoped<ITemplateRepository, TemplateRepository>();
 builder.Services.AddScoped<IOrgRepository, OrgRepository>();
+builder.Services.AddScoped<IWorkScheduleRepository, WorkScheduleRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<ILeaveRepository, LeaveRepository>();
 // builder.Services.AddScoped<IWorkflowRepository, WorkflowRepository>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 builder.Services.AddScoped<IPlatformUserRepository, PlatformUserRepository>();
+builder.Services.AddScoped<IOnboardingRepository, OnboardingRepository>();
+builder.Services.AddScoped<IEmailDeliveryLogRepository, EmailDeliveryLogRepository>();
+builder.Services.AddScoped<INotificationChannelRepository, NotificationChannelRepository>();
 
 // Services
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
@@ -71,12 +77,34 @@ builder.Services.AddScoped<IFeatureGateService, FeatureGateService>();
 builder.Services.AddScoped<IScopeResolverService, ScopeResolverService>();
 builder.Services.AddScoped<ITemplateApplicationService, TemplateApplicationService>();
 builder.Services.AddScoped<IOrgStructureService, OrgStructureService>();
+builder.Services.AddScoped<IWorkScheduleService, WorkScheduleService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ILeaveService, LeaveService>();
 // builder.Services.AddScoped<IWorkflowService, WorkflowService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IOutboxService, OutboxService>();
+builder.Services.AddScoped<IOnboardingService, OnboardingService>();
+builder.Services.AddScoped<IEmailOutboxProcessorService, EmailOutboxProcessorService>();
 builder.Services.AddHostedService<OutboxPublisherService>();
+
+// Email sending. The Email section holds only non-secret settings
+// (FrontendBaseUrl). SendGrid provider config — including the API key — lives
+// per tenant in notification_channels: metadata in config_json, the key
+// encrypted into credentials_encrypted via ISecretProtector. The outbox
+// processor picks SendGrid or the local_dev fallback per email at send time.
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.AddDataProtection();
+builder.Services.AddSingleton<ISecretProtector, DataProtectionSecretProtector>();
+builder.Services.AddHttpClient("SendGrid");
+builder.Services.AddScoped<ISendGridEmailSender>(serviceProvider =>
+{
+    var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+    return new SendGridEmailSender(
+        httpClientFactory.CreateClient("SendGrid"),
+        serviceProvider.GetRequiredService<ILogger<SendGridEmailSender>>());
+});
+builder.Services.AddScoped<ILocalDevEmailSender, LocalDevEmailSender>();
+builder.Services.AddScoped<ISystemConfigService, SystemConfigService>();
 
 var app = builder.Build();
 
@@ -97,7 +125,7 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-if (!app.Environment.IsDevelopment())
+if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
 {
     app.UseHttpsRedirection();
 }
@@ -107,7 +135,7 @@ app.UseCors("CorsPolicy");
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseMiddleware<CsrfMiddleware>();
-app.UseMiddleware<PermissionMiddleware>();
+app.UseMiddleware<AuthBoundaryMiddleware>();
 
 app.MapControllers();
 

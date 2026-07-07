@@ -468,3 +468,4 @@ C:\onevoNew\test\backend.Tests\obj\Debug\net10.0\refint\backend.Tests.dll
 C:\onevoNew\test\backend.Tests\obj\Debug\net10.0\backend.Tests.pdb
 C:\onevoNew\test\backend.Tests\obj\Debug\net10.0\backend.Tests.genruntimeconfig.cache
 C:\onevoNew\test\backend.Tests\obj\Debug\net10.0\ref\backend.Tests.dll
+C:\onevoNew\test\backend.Tests\obj\Debug\net10.0\backend.Tests.sourcelink.json

@@ -20,16 +20,16 @@ public class OrgStructureService : IOrgStructureService
         return entities.Select(l => new LegalEntityDto(l.Id, l.Name, l.Code, l.Status)).ToList();
     }
 
-    public async Task<List<DepartmentDto>> GetDepartmentsAsync(Guid tenantId)
+    public async Task<List<DepartmentDto>> GetDepartmentsAsync(Guid tenantId, Guid? legalEntityId)
     {
-        var departments = await _org.GetDepartmentsAsync(tenantId);
+        var departments = await _org.GetDepartmentsAsync(tenantId, legalEntityId);
         return departments.Select(d => new DepartmentDto(
             d.Id, d.LegalEntityId, d.Name, d.Code, d.ParentDepartmentId, d.HeadPositionId, d.Status)).ToList();
     }
 
-    public async Task<List<PositionDto>> GetPositionsAsync(Guid tenantId)
+    public async Task<List<PositionDto>> GetPositionsAsync(Guid tenantId, Guid? legalEntityId, Guid? departmentId)
     {
-        var positions = await _org.GetPositionsAsync(tenantId);
+        var positions = await _org.GetPositionsAsync(tenantId, legalEntityId, departmentId);
         return positions.Select(Map).ToList();
     }
 

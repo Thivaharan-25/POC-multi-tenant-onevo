@@ -28,10 +28,17 @@ public class OrgRepository : IOrgRepository
             .FirstOrDefaultAsync(l => l.Id == id);
     }
 
-    public async Task<List<Department>> GetDepartmentsAsync(Guid tenantId)
+    public async Task<List<Department>> GetDepartmentsAsync(Guid tenantId, Guid? legalEntityId)
     {
-        return await _db.Departments.AsNoTracking()
-            .Where(d => d.TenantId == tenantId)
+        var query = _db.Departments.AsNoTracking()
+            .Where(d => d.TenantId == tenantId);
+
+        if (legalEntityId.HasValue)
+        {
+            query = query.Where(d => d.LegalEntityId == legalEntityId.Value);
+        }
+
+        return await query
             .OrderBy(d => d.Name)
             .ToListAsync();
     }
@@ -42,11 +49,23 @@ public class OrgRepository : IOrgRepository
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 
-    public async Task<List<Position>> GetPositionsAsync(Guid tenantId)
+    public async Task<List<Position>> GetPositionsAsync(Guid tenantId, Guid? legalEntityId, Guid? departmentId)
     {
-        return await _db.Positions.AsNoTracking()
+        var query = _db.Positions.AsNoTracking()
             .Include(p => p.PositionAssignments)
-            .Where(p => p.TenantId == tenantId)
+            .Where(p => p.TenantId == tenantId);
+
+        if (legalEntityId.HasValue)
+        {
+            query = query.Where(p => p.LegalEntityId == legalEntityId.Value);
+        }
+
+        if (departmentId.HasValue)
+        {
+            query = query.Where(p => p.DepartmentId == departmentId.Value);
+        }
+
+        return await query
             .OrderBy(p => p.Name)
             .ToListAsync();
     }
