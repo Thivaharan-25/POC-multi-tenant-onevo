@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -12,6 +12,7 @@ import { DepartmentsApiService } from '../../core/api/endpoints/departments-api.
 import { LegalEntitiesApiService } from '../../core/api/endpoints/legal-entities-api.service';
 import { OnboardingWizardComponent } from './onboarding/onboarding-wizard.component';
 import { MyDraftsDrawerComponent } from './onboarding/my-drafts-drawer.component';
+import { CompanyContextService } from '../../core/context/company-context.service';
 
 interface DepartmentOption {
   id: string;
@@ -36,9 +37,6 @@ interface DepartmentOption {
     <ov-page-shell>
       <ov-page-header title="Employees" subtitle="People visible to you based on your role and coverage.">
         <div actions>
-          <button type="button" class="btn btn-outline" *hasPermission="'employees:write'" (click)="openMyDrafts()">
-            My Drafts
-          </button>
           <button type="button" class="btn btn-primary" *hasPermission="'employees:write'" (click)="openAddEmployee()">
             Add Employee
           </button>
@@ -116,6 +114,7 @@ interface DepartmentOption {
     ></app-my-drafts-drawer>
   `,
   styles: [`
+    :host { display: block; height: 100%; width: 100%; }
     .filters-row { display: flex; gap: 12px; margin-bottom: 20px; }
     .search-input {
       flex: 1;
@@ -154,6 +153,7 @@ export class PeopleComponent implements OnInit {
   private employeesApi = inject(EmployeesApiService);
   private departmentsApi = inject(DepartmentsApiService);
   private legalEntitiesApi = inject(LegalEntitiesApiService);
+  private companyContext = inject(CompanyContextService);
 
   employees = signal<EmployeeListItem[]>([]);
   departments = signal<DepartmentOption[]>([]);
@@ -168,20 +168,29 @@ export class PeopleComponent implements OnInit {
   wizardDraftId = signal<string | null>(null);
   myDraftsOpen = signal(false);
 
-  async ngOnInit() {
-    await this.loadDepartments();
-    await this.loadEmployees();
+  constructor() {
+    effect(() => {
+      const companyId = this.companyContext.activeCompanyId();
+      if (companyId) {
+        this.loadDepartments(companyId);
+        this.loadEmployees(companyId);
+      } else {
+        this.employees.set([]);
+        this.departments.set([]);
+      }
+    });
   }
 
-  private async loadDepartments() {
+  async ngOnInit() {
+    // Initialization is handled by effect when activeCompanyId is available.
+  }
+
+  private async loadDepartments(companyId: string) {
     try {
-      const legalEntities = (await firstValueFrom(this.legalEntitiesApi.list())) as any[];
       const allDepartments: DepartmentOption[] = [];
-      for (const le of legalEntities) {
-        const depts = (await firstValueFrom(this.departmentsApi.list(le.id))) as any[];
-        for (const d of depts) {
-          allDepartments.push({ id: d.id, name: d.name });
-        }
+      const depts = (await firstValueFrom(this.departmentsApi.list(companyId))) as any[];
+      for (const d of depts) {
+        allDepartments.push({ id: d.id, name: d.name });
       }
       this.departments.set(allDepartments);
     } catch {
@@ -189,7 +198,10 @@ export class PeopleComponent implements OnInit {
     }
   }
 
-  async loadEmployees() {
+  async loadEmployees(companyId?: string) {
+    const id = companyId || this.companyContext.activeCompanyId();
+    if (!id) return;
+    
     this.loading.set(true);
     this.error.set(null);
     try {
@@ -197,7 +209,8 @@ export class PeopleComponent implements OnInit {
         this.employeesApi.list({
           search: this.search || undefined,
           status: this.statusFilter || undefined,
-          departmentId: this.departmentFilter || undefined
+          departmentId: this.departmentFilter || undefined,
+          legalEntityId: id
         })
       );
       this.employees.set(result);

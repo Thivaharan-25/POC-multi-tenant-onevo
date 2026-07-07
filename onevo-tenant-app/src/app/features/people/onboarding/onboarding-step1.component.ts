@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { FormFieldComponent } from '../../../shared/ui/form-field/form-field.component';
+import { HasPermissionDirective } from '../../../shared/directives/has-permission.directive';
 import { LegalEntitiesApiService } from '../../../core/api/endpoints/legal-entities-api.service';
 import { DepartmentsApiService } from '../../../core/api/endpoints/departments-api.service';
 import { PositionsApiService } from '../../../core/api/endpoints/positions-api.service';
 import { WorkSchedulesApiService } from '../../../core/api/endpoints/work-schedules-api.service';
+import { CompanyContextService } from '../../../core/context/company-context.service';
 
 export interface Step1FormData {
   employeeName: string;
@@ -35,7 +37,7 @@ interface Option {
 @Component({
   selector: 'app-onboarding-step1',
   standalone: true,
-  imports: [CommonModule, FormsModule, FormFieldComponent],
+  imports: [CommonModule, FormsModule, FormFieldComponent, HasPermissionDirective],
   template: `
     <form class="wizard-form" (ngSubmit)="onNext()">
       <div class="form-grid">
@@ -58,12 +60,6 @@ interface Option {
         </ov-form-field>
         <ov-form-field label="Start Date" [required]="true">
           <input type="date" [(ngModel)]="data.startDate" name="startDate" required />
-        </ov-form-field>
-        <ov-form-field label="Company" [required]="true">
-          <select [(ngModel)]="data.legalEntityId" name="legalEntityId" (ngModelChange)="onCompanyChange()" required>
-            <option [ngValue]="null">Select company…</option>
-            <option *ngFor="let c of companies" [ngValue]="c.id">{{ c.name }}</option>
-          </select>
         </ov-form-field>
         <ov-form-field label="Department">
           <select
@@ -88,7 +84,7 @@ interface Option {
             <option *ngFor="let p of positions" [ngValue]="p.id">{{ p.name }}</option>
           </select>
         </ov-form-field>
-        <ov-form-field label="Work Schedule">
+        <ov-form-field label="Work Schedule" *hasPermission="'attendance:read'">
           <select [(ngModel)]="data.scheduleId" name="scheduleId" [disabled]="!data.legalEntityId">
             <option [ngValue]="null">Select schedule…</option>
             <option *ngFor="let s of schedules" [ngValue]="s.id">{{ s.name }}</option>
@@ -124,15 +120,15 @@ export class OnboardingStep1Component implements OnInit, OnChanges {
   private departmentsApi = inject(DepartmentsApiService);
   private positionsApi = inject(PositionsApiService);
   private schedulesApi = inject(WorkSchedulesApiService);
+  private companyContext = inject(CompanyContextService);
 
   @Input() initialData!: Step1FormData;
   @Output() next = new EventEmitter<Step1FormData>();
   @Output() cancel = new EventEmitter<void>();
 
   data: Step1FormData = this.emptyData();
-  companies: Option[] = [];
   departments: Option[] = [];
-  positions: Option[] = [];
+  positions: any[] = [];
   schedules: Option[] = [];
   reportingManagerName: string | null = null;
 
@@ -158,8 +154,11 @@ export class OnboardingStep1Component implements OnInit, OnChanges {
   }
 
   async ngOnInit() {
-    const companies = (await firstValueFrom(this.legalEntitiesApi.list())) as any[];
-    this.companies = companies.map(c => ({ id: c.id, name: c.name }));
+    const activeCompanyId = this.companyContext.activeCompanyId();
+    if (activeCompanyId && !this.data.legalEntityId) {
+      this.data.legalEntityId = activeCompanyId;
+      await this.loadDependentOptions();
+    }
   }
 
   async ngOnChanges() {
@@ -169,14 +168,6 @@ export class OnboardingStep1Component implements OnInit, OnChanges {
         await this.loadDependentOptions();
       }
     }
-  }
-
-  async onCompanyChange() {
-    this.data.departmentId = null;
-    this.data.positionId = null;
-    this.data.scheduleId = null;
-    this.reportingManagerName = null;
-    await this.loadDependentOptions();
   }
 
   async onDepartmentChange() {
@@ -195,6 +186,13 @@ export class OnboardingStep1Component implements OnInit, OnChanges {
     if (!this.data.positionId) {
       return;
     }
+
+    // Auto-select the corresponding department if the user picked a position directly
+    const selectedPosition = this.positions.find((p: any) => p.id === this.data.positionId);
+    if (selectedPosition && selectedPosition.departmentId && this.data.departmentId !== selectedPosition.departmentId) {
+      this.data.departmentId = selectedPosition.departmentId;
+    }
+
     try {
       const manager = await firstValueFrom(this.positionsApi.getReportingManager(this.data.positionId));
       this.reportingManagerName = manager.hasManager ? (manager.employeeName ?? null) : null;
@@ -211,14 +209,49 @@ export class OnboardingStep1Component implements OnInit, OnChanges {
       return;
     }
     const legalEntityId = this.data.legalEntityId;
-    const [depts, positions, schedules] = await Promise.all([
-      firstValueFrom(this.departmentsApi.list(legalEntityId)) as Promise<any[]>,
-      firstValueFrom(this.positionsApi.list(legalEntityId, this.data.departmentId ?? undefined)) as Promise<any[]>,
-      firstValueFrom(this.schedulesApi.list(legalEntityId)) as Promise<any[]>
-    ]);
-    this.departments = depts.map(d => ({ id: d.id, name: d.name }));
-    this.positions = positions.map(p => ({ id: p.id, name: p.name }));
-    this.schedules = schedules.map(s => ({ id: s.id, name: s.name }));
+    
+    try {
+      const depts = (await firstValueFrom(this.departmentsApi.list(legalEntityId))) as any[];
+      this.departments = depts.map((d: any) => ({ id: d.id, name: d.name }));
+    } catch (e) {
+      console.error('Failed to load departments', e);
+      this.departments = [];
+    }
+
+    try {
+      const positions = (await firstValueFrom(
+        this.positionsApi.list(legalEntityId, this.data.departmentId ?? undefined)
+      )) as any[];
+      this.positions = positions.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        departmentId: p.departmentId,
+        defaultScheduleId: p.defaultScheduleId
+      }));
+    } catch (e) {
+      console.error('Failed to load positions', e);
+      this.positions = [];
+    }
+
+    try {
+      const schedules = (await firstValueFrom(this.schedulesApi.list(legalEntityId))) as any[];
+      this.schedules = schedules.map((s: any) => ({ 
+        id: s.id, 
+        name: s.name, 
+        defaultForNewEmployee: s.defaultForNewEmployee 
+      }));
+      
+      // Auto-select default schedule if none is selected
+      if (!this.data.scheduleId) {
+        const defaultSchedule = this.schedules.find((s: any) => s.defaultForNewEmployee);
+        if (defaultSchedule) {
+          this.data.scheduleId = defaultSchedule.id;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load schedules', e);
+      this.schedules = [];
+    }
   }
 
   isValid(): boolean {
@@ -238,7 +271,7 @@ export class OnboardingStep1Component implements OnInit, OnChanges {
     }
     const withNames: Step1FormData = {
       ...this.data,
-      companyName: this.companies.find(c => c.id === this.data.legalEntityId)?.name ?? null,
+      companyName: this.data.companyName, // Usually we can fetch it or just keep whatever it was. Actually, let's keep it null if we don't have it locally, it's fine.
       departmentName: this.departments.find(d => d.id === this.data.departmentId)?.name ?? null,
       positionName: this.positions.find(p => p.id === this.data.positionId)?.name ?? null,
       scheduleName: this.schedules.find(s => s.id === this.data.scheduleId)?.name ?? null,

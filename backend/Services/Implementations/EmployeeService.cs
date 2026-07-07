@@ -99,6 +99,11 @@ public class EmployeeService : IEmployeeService
             result = result.Where(e => e.CurrentPositionId == query.PositionId.Value).ToList();
         }
 
+        if (query.LegalEntityId.HasValue)
+        {
+            result = result.Where(e => e.LegalEntityId == query.LegalEntityId.Value).ToList();
+        }
+
         return result;
     }
 

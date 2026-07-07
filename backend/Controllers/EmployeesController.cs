@@ -22,10 +22,11 @@ public sealed class EmployeesController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] string? status,
         [FromQuery] Guid? departmentId,
-        [FromQuery] Guid? positionId)
+        [FromQuery] Guid? positionId,
+        [FromQuery] Guid? legalEntityId)
     {
         // Visibility (own / direct reports / department / tenant) is scope-filtered in the service.
-        var query = new EmployeeListQuery(search, status, departmentId, positionId);
+        var query = new EmployeeListQuery(search, status, departmentId, positionId, legalEntityId);
         var employees = await _employees.GetVisibleEmployeesAsync(query);
         return Ok(employees);
     }

@@ -18,4 +18,5 @@ public sealed record EmployeeListQuery(
     string? Search,
     string? Status,
     Guid? DepartmentId,
-    Guid? PositionId);
+    Guid? PositionId,
+    Guid? LegalEntityId);

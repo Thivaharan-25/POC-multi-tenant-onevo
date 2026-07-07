@@ -4,21 +4,20 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppContextStore } from '../../core/context/app-context.store';
 import { environment } from '../../../environments/environment';
+import { PageShellComponent } from '../../shared/ui/page-shell/page-shell.component';
+import { PageHeaderComponent } from '../../shared/ui/page-header/page-header.component';
+import { CardComponent } from '../../shared/ui/card/card.component';
+import { StatusPillComponent } from '../../shared/ui/status-pill/status-pill.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PageShellComponent, CardComponent, StatusPillComponent],
   template: `
-    <div class="dashboard-container">
-      <header class="dashboard-header">
-        <h1>Dashboard</h1>
-        <p class="subtitle">Developer & System Context Panel (Phase 1 Vertical Slice)</p>
-      </header>
-
+    <ov-page-shell>
       <div class="dashboard-grid">
         <!-- Live API Status Diagnostics -->
-        <div class="card diagnostics-card full-width">
+        <ov-card class="full-width">
           <div class="card-header">
             <svg class="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -28,38 +27,38 @@ import { environment } from '../../../environments/environment';
           <div class="card-body diagnostic-grid">
             <div class="diagnostic-item">
               <span class="endpoint-label">GET /api/v1/auth/session</span>
-              <span class="status-badge" [ngClass]="authService.sessionApiStatus().status">
+              <ov-status-pill [status]="authService.sessionApiStatus().status === 'success' ? 'success' : (authService.sessionApiStatus().status === 'error' ? 'danger' : 'neutral')">
                 {{ authService.sessionApiStatus().status | uppercase }}
                 <span *ngIf="authService.sessionApiStatus().statusCode" class="code-suffix">
                   ({{ authService.sessionApiStatus().statusCode }})
                 </span>
-              </span>
+              </ov-status-pill>
             </div>
 
             <div class="diagnostic-item">
               <span class="endpoint-label">GET /api/v1/tenant/resource-limits</span>
-              <span class="status-badge" [ngClass]="limitsApiStatus().status">
+              <ov-status-pill [status]="limitsApiStatus().status === 'success' ? 'success' : (limitsApiStatus().status === 'error' ? 'danger' : 'neutral')">
                 {{ limitsApiStatus().status | uppercase }}
                 <span *ngIf="limitsApiStatus().statusCode" class="code-suffix">
                   ({{ limitsApiStatus().statusCode }})
                 </span>
-              </span>
+              </ov-status-pill>
             </div>
 
             <div class="diagnostic-item">
               <span class="endpoint-label">GET /api/v1/outbox/recent</span>
-              <span class="status-badge" [ngClass]="outboxApiStatus().status">
+              <ov-status-pill [status]="outboxApiStatus().status === 'success' ? 'success' : (outboxApiStatus().status === 'error' ? 'danger' : 'neutral')">
                 {{ outboxApiStatus().status | uppercase }}
                 <span *ngIf="outboxApiStatus().statusCode" class="code-suffix">
                   ({{ outboxApiStatus().statusCode }})
                 </span>
-              </span>
+              </ov-status-pill>
             </div>
           </div>
-        </div>
+        </ov-card>
 
         <!-- Section 1: Active Session & User Info -->
-        <div class="card session-card">
+        <ov-card>
           <div class="card-header">
             <svg class="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -89,15 +88,15 @@ import { environment } from '../../../environments/environment';
             </div>
             <div class="info-row">
               <span class="label">Setup Complete:</span>
-              <span class="value status-badge-old" [class.success]="setupComplete()">
+              <ov-status-pill [status]="setupComplete() ? 'success' : 'danger'">
                 {{ setupComplete() ? 'Yes' : 'No' }}
-              </span>
+              </ov-status-pill>
             </div>
           </div>
-        </div>
+        </ov-card>
 
         <!-- Section 2: Resource Limits & Quotas -->
-        <div class="card limits-card">
+        <ov-card>
           <div class="card-header">
             <svg class="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"/>
@@ -130,10 +129,10 @@ import { environment } from '../../../environments/environment';
               </div>
             </div>
           </div>
-        </div>
+        </ov-card>
 
         <!-- Section 3: Active Modules & Feature Entitlements -->
-        <div class="card modules-card">
+        <ov-card>
           <div class="card-header">
             <svg class="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
@@ -151,10 +150,10 @@ import { environment } from '../../../environments/environment';
               <span class="tag feature-tag" *ngFor="let feat of activeFeatures()">{{ feat }}</span>
             </div>
           </div>
-        </div>
+        </ov-card>
 
         <!-- Section 4: Permissions -->
-        <div class="card permissions-card">
+        <ov-card>
           <div class="card-header">
             <svg class="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -166,10 +165,10 @@ import { environment } from '../../../environments/environment';
               <span class="tag permission-tag" *ngFor="let perm of permissions()">{{ perm }}</span>
             </div>
           </div>
-        </div>
+        </ov-card>
 
         <!-- Section 5: Latest Outbox Messages -->
-        <div class="card outbox-card full-width">
+        <ov-card class="full-width">
           <div class="card-header">
             <svg class="card-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"/>
@@ -203,54 +202,18 @@ import { environment } from '../../../environments/environment';
               </table>
             </div>
           </div>
-        </div>
+        </ov-card>
       </div>
-    </div>
+    </ov-page-shell>
   `,
   styles: [`
-    .dashboard-container {
-      padding: 2rem;
-      background: #0b0f19;
-      min-height: 100vh;
-      color: #f8fafc;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-    .dashboard-header {
-      margin-bottom: 2rem;
-    }
-    .dashboard-header h1 {
-      font-size: 2.25rem;
-      font-weight: 800;
-      letter-spacing: -0.025em;
-      margin: 0 0 0.5rem 0;
-      background: linear-gradient(to right, #38bdf8, #818cf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .subtitle {
-      color: #94a3b8;
-      font-size: 1rem;
-      margin: 0;
-    }
     .dashboard-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
       gap: 1.5rem;
     }
-    .card {
-      background: rgba(30, 41, 59, 0.4);
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      padding: 1.5rem;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    .card.full-width {
+    ::ng-deep .full-width {
       grid-column: 1 / -1;
-    }
-    .diagnostics-card {
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px solid rgba(56, 189, 248, 0.2);
     }
     .diagnostic-grid {
       display: flex;
@@ -262,42 +225,13 @@ import { environment } from '../../../environments/environment';
       justify-content: space-between;
       align-items: center;
       padding: 0.5rem 1rem;
-      background: rgba(15, 23, 42, 0.4);
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
     }
     .endpoint-label {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.85rem;
-      color: #cbd5e1;
-    }
-    .status-badge {
-      font-size: 0.75rem;
-      padding: 0.25rem 0.6rem;
-      border-radius: 6px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-    }
-    .status-badge.idle {
-      background: rgba(148, 163, 184, 0.1);
-      color: #94a3b8;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-    }
-    .status-badge.loading {
-      background: rgba(56, 189, 248, 0.1);
-      color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      animation: pulse 1.5s infinite;
-    }
-    .status-badge.success {
-      background: rgba(16, 185, 129, 0.1);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-    .status-badge.error {
-      background: rgba(239, 68, 68, 0.1);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--content-fg);
+      opacity: 0.7;
     }
     .code-suffix {
       font-weight: normal;
@@ -322,18 +256,18 @@ import { environment } from '../../../environments/environment';
       align-items: center;
       gap: 0.75rem;
       margin-bottom: 1.25rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--border-color);
       padding-bottom: 0.75rem;
     }
     .card-icon {
       width: 20px;
       height: 20px;
-      color: #38bdf8;
+      color: var(--primary);
     }
     h3 {
       font-size: 1.15rem;
       font-weight: 600;
-      color: #f1f5f9;
+      color: var(--content-fg);
       margin: 0;
       flex-grow: 1;
     }
@@ -342,24 +276,25 @@ import { environment } from '../../../environments/environment';
       justify-content: space-between;
       align-items: center;
       padding: 0.5rem 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border-color);
     }
     .label {
-      color: #94a3b8;
+      color: var(--content-fg);
+      opacity: 0.7;
       font-size: 0.875rem;
     }
     .value {
-      color: #f1f5f9;
+      color: var(--content-fg);
       font-weight: 500;
       font-size: 0.9rem;
     }
     .code {
       font-family: 'JetBrains Mono', 'Fira Code', monospace;
       font-size: 0.8rem;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(128, 128, 128, 0.1);
       padding: 0.2rem 0.4rem;
       border-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
     }
     .tag {
       font-size: 0.75rem;
@@ -369,30 +304,19 @@ import { environment } from '../../../environments/environment';
     }
     .module-tag {
       background: rgba(16, 185, 129, 0.1);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #059669;
     }
     .feature-tag {
       background: rgba(99, 102, 241, 0.1);
-      color: #a5b4fc;
-      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: #4f46e5;
     }
     .permission-tag {
       background: rgba(245, 158, 11, 0.1);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.2);
+      color: #d97706;
     }
-    .status-badge-old {
-      font-size: 0.75rem;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      background: rgba(239, 68, 68, 0.1);
-      color: #fca5a5;
-    }
-    .status-badge-old.success {
-      background: rgba(16, 185, 129, 0.1);
-      color: #34d399;
-    }
+    :host-context(.dark) .module-tag { color: #34d399; }
+    :host-context(.dark) .feature-tag { color: #818cf8; }
+    :host-context(.dark) .permission-tag { color: #fbbf24; }
     .tag-cloud {
       display: flex;
       flex-wrap: wrap;
@@ -401,7 +325,8 @@ import { environment } from '../../../environments/environment';
     .section-title {
       font-size: 0.875rem;
       font-weight: 600;
-      color: #94a3b8;
+      color: var(--content-fg);
+      opacity: 0.7;
       margin-bottom: 0.5rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -414,9 +339,12 @@ import { environment } from '../../../environments/environment';
       flex-direction: column;
       gap: 0.25rem;
       margin-bottom: 1rem;
-      background: rgba(15, 23, 42, 0.2);
+      background: rgba(15, 23, 42, 0.05);
       padding: 0.75rem;
       border-radius: 8px;
+    }
+    :host-context(.dark) .limit-item {
+      background: rgba(15, 23, 42, 0.2);
     }
     .no-data {
       color: #64748b;
@@ -425,9 +353,9 @@ import { environment } from '../../../environments/environment';
       padding: 1.5rem;
     }
     .refresh-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #cbd5e1;
+      background: rgba(128, 128, 128, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--content-fg);
       padding: 0.35rem 0.75rem;
       border-radius: 6px;
       font-size: 0.8rem;
@@ -435,14 +363,13 @@ import { environment } from '../../../environments/environment';
       transition: all 0.2s;
     }
     .refresh-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
+      background: rgba(128, 128, 128, 0.1);
     }
     .table-container {
       overflow-x: auto;
-      background: rgba(15, 23, 42, 0.3);
+      background: transparent;
       border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
     }
     .outbox-table {
       width: 100%;
@@ -452,11 +379,12 @@ import { environment } from '../../../environments/environment';
     }
     .outbox-table th, .outbox-table td {
       padding: 0.75rem 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--border-color);
     }
     .outbox-table th {
-      background: rgba(15, 23, 42, 0.6);
-      color: #94a3b8;
+      background: rgba(128, 128, 128, 0.05);
+      color: var(--content-fg);
+      opacity: 0.7;
       font-weight: 600;
     }
     .type-badge {

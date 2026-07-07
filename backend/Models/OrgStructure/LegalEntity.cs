@@ -7,6 +7,13 @@ public class LegalEntity
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public string Status { get; set; } = "active";
+    
+    // New fields as per HR docs
+    public string Country { get; set; } = string.Empty;
+    public string Currency { get; set; } = string.Empty;
+    public string Timezone { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+
     public string OfficeAddressLabel { get; set; } = string.Empty;
     public decimal? OfficeLatitude { get; set; }
     public decimal? OfficeLongitude { get; set; }

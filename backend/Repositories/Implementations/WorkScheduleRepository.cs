@@ -28,4 +28,9 @@ public class WorkScheduleRepository : IWorkScheduleRepository
             .OrderBy(s => s.Name)
             .ToListAsync();
     }
+
+    public async Task AddWorkScheduleAsync(WorkSchedule schedule)
+    {
+        await _db.WorkSchedules.AddAsync(schedule);
+    }
 }

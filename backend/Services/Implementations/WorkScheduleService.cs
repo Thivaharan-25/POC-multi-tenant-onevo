@@ -17,6 +17,6 @@ public class WorkScheduleService : IWorkScheduleService
     {
         var schedules = await _workSchedules.GetWorkSchedulesAsync(tenantId, legalEntityId);
         return schedules.Select(s => new WorkScheduleDto(
-            s.Id, s.LegalEntityId, s.Name, s.Timezone, s.IsActive)).ToList();
+            s.Id, s.LegalEntityId, s.Name, s.Timezone, s.IsActive, s.DefaultForNewEmployee)).ToList();
     }
 }

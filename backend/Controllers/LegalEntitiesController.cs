@@ -24,4 +24,12 @@ public sealed class LegalEntitiesController : ControllerBase
         var legalEntities = await _orgStructure.GetLegalEntitiesAsync(_tenantContext.TenantId!.Value);
         return Ok(legalEntities);
     }
+
+    [HttpPost]
+    [RequirePermission("org:legal-entities:manage")]
+    public async Task<IActionResult> Create([FromBody] OnevoHr.Api.DTOs.OrgStructure.CreateLegalEntityRequestDto request)
+    {
+        var legalEntity = await _orgStructure.CreateLegalEntityAsync(_tenantContext.TenantId!.Value, request);
+        return Ok(legalEntity);
+    }
 }

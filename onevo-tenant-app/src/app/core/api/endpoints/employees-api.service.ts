@@ -21,6 +21,7 @@ export interface EmployeeListFilters {
   status?: string;
   departmentId?: string;
   positionId?: string;
+  legalEntityId?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -33,6 +34,7 @@ export class EmployeesApiService {
     if (filters.status) params['status'] = filters.status;
     if (filters.departmentId) params['departmentId'] = filters.departmentId;
     if (filters.positionId) params['positionId'] = filters.positionId;
+    if (filters.legalEntityId) params['legalEntityId'] = filters.legalEntityId;
     return this.http.get<EmployeeListItem[]>('/api/v1/employees', { params });
   }
 }
