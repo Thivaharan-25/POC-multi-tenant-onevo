@@ -57,6 +57,22 @@ public class OnboardingRepository : IOnboardingRepository
             .ToListAsync();
     }
 
+    public async Task<List<ChecklistTemplate>> GetChecklistTemplatesAsync(Guid tenantId)
+    {
+        return await _db.ChecklistTemplates
+            .Where(t => t.TenantId == tenantId && t.IsActive)
+            .OrderBy(t => t.Name)
+            .ToListAsync();
+    }
+
+    public async Task<List<OnboardingDraft>> GetDraftsByStartedByAsync(Guid tenantId, Guid startedById)
+    {
+        return await _db.OnboardingDrafts
+            .Where(d => d.TenantId == tenantId && d.StartedById == startedById && d.Status == "draft")
+            .OrderByDescending(d => d.UpdatedAtUtc)
+            .ToListAsync();
+    }
+
     public async Task SaveChangesAsync()
     {
         await _db.SaveChangesAsync();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using OnevoHr.Api.DTOs;
+using OnevoHr.Api.DTOs.Onboarding;
 using OnevoHr.Api.Options;
 using OnevoHr.Api.Models.Auth;
 using OnevoHr.Api.Models.Employees;
@@ -180,6 +182,67 @@ public class OnboardingService : IOnboardingService
 
         await _onboardingRepository.SaveChangesAsync();
         return new DraftActionResponse { Status = "ok" };
+    }
+
+    // ------------------------------------------------------------------
+    // Checklist templates and my-drafts (read-only)
+    // ------------------------------------------------------------------
+
+    public async Task<ChecklistTemplateListResponse> GetChecklistTemplatesAsync(Guid? departmentId, CancellationToken ct)
+    {
+        var tenantId = GetCurrentTenantId();
+
+        var templates = await _onboardingRepository.GetChecklistTemplatesAsync(tenantId);
+        var summaries = templates
+            .Select(t => new ChecklistTemplateSummaryDto(t.Id, t.Name, t.TemplateType, t.DepartmentId, t.IsActive))
+            .ToList();
+
+        // Recommended template: department-specific match first, then company-wide
+        // fallback. Position-specific matching is deferred — ChecklistTemplate has
+        // no PositionId column yet (see plan Global Constraints).
+        ChecklistTemplate? recommended = null;
+        if (departmentId.HasValue)
+        {
+            recommended = templates.FirstOrDefault(t => t.DepartmentId == departmentId.Value);
+        }
+        if (recommended == null)
+        {
+            recommended = templates.FirstOrDefault(t => t.DepartmentId == null);
+        }
+
+        return new ChecklistTemplateListResponse(summaries, recommended?.Id);
+    }
+
+    public async Task<ChecklistTemplateDetailDto?> GetChecklistTemplateDetailAsync(Guid templateId, CancellationToken ct)
+    {
+        var tenantId = GetCurrentTenantId();
+
+        var template = await _onboardingRepository.GetChecklistTemplateAsync(tenantId, templateId);
+        if (template == null)
+        {
+            return null;
+        }
+
+        var parsedTasks = TryParseTasks(template.TasksJson) ?? new List<DraftTaskDefinition>();
+        var tasks = parsedTasks
+            .Where(t => !string.IsNullOrWhiteSpace(t.Title))
+            .Select(t => new ChecklistTemplateTaskDto(
+                t.Title!, t.OwnerType, t.Sequence, t.IsRequired == true, t.IsLocked == true))
+            .ToList();
+
+        return new ChecklistTemplateDetailDto(
+            template.Id, template.Name, template.TemplateType, template.DepartmentId, template.IsActive, tasks);
+    }
+
+    public async Task<List<MyDraftSummaryDto>> GetMyDraftsAsync(CancellationToken ct)
+    {
+        var tenantId = GetCurrentTenantId();
+        var userId = GetCurrentUserId();
+
+        var drafts = await _onboardingRepository.GetDraftsByStartedByAsync(tenantId, userId);
+        return drafts
+            .Select(d => new MyDraftSummaryDto(d.Id, d.EmployeeName, d.WorkEmail, d.LastSavedStep, d.DraftReason, d.UpdatedAtUtc))
+            .ToList();
     }
 
     // ------------------------------------------------------------------

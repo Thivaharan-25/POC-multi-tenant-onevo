@@ -14,5 +14,7 @@ public interface IOnboardingRepository
     Task<WorkSchedule?> GetWorkScheduleAsync(Guid tenantId, Guid scheduleId);
     Task<ChecklistTemplate?> GetChecklistTemplateAsync(Guid tenantId, Guid templateId);
     Task<List<PositionAccessTemplate>> GetActivePositionAccessTemplatesAsync(Guid tenantId, Guid positionId);
+    Task<List<ChecklistTemplate>> GetChecklistTemplatesAsync(Guid tenantId);
+    Task<List<OnboardingDraft>> GetDraftsByStartedByAsync(Guid tenantId, Guid startedById);
     Task SaveChangesAsync();
 }
