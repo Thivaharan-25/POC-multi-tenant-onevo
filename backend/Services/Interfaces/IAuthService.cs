@@ -22,4 +22,6 @@ public interface IAuthService
     Task LogoutAsync(string sessionToken);
     Task<SessionValidationDto?> ValidateSessionAsync(string sessionToken);
     Task<AuthSessionResult?> RefreshSessionAsync(string sessionToken);
+    Task<SafeInvitationDto?> ValidateInvitationTokenAsync(string token);
+    Task<AuthSessionResult?> AcceptInvitationWithPasswordAsync(string token, string password);
 }

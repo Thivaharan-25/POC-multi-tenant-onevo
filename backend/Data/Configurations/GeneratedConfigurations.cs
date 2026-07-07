@@ -1633,7 +1633,9 @@ public class NotificationChannelConfiguration : IEntityTypeConfiguration<Notific
         builder.HasIndex(x => x.TenantId);
         builder.Property(x => x.ChannelType).HasMaxLength(30);
         builder.Property(x => x.Provider).HasMaxLength(50);
-        builder.Property(x => x.CredentialsEncrypted).HasColumnType("jsonb");
+        builder.Property(x => x.ConfigJson).HasColumnType("jsonb").HasDefaultValueSql("'{}'");
+        // Data Protection payloads are opaque base64 strings, not JSON.
+        builder.Property(x => x.CredentialsEncrypted).HasColumnType("text");
     }
 }
 

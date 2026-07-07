@@ -101,9 +101,24 @@ namespace OnevoHr.Api.Data.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("PasswordResetTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PasswordResetTokenHash")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("PasswordSetupExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("PasswordSetupRequired")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
@@ -958,6 +973,83 @@ namespace OnevoHr.Api.Data.Migrations
                     b.HasIndex("TenantId", "EmployeeId");
 
                     b.ToTable("employee_assignment_history", (string)null);
+                });
+
+            modelBuilder.Entity("OnevoHr.Api.Models.Employees.OnboardingDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DraftReason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EditedTasksJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("EmployeeName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EmployeeNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EmploymentType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastSavedStep")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("LegalEntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PositionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SelectedTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("StartedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WorkEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "StartedById");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.HasIndex("TenantId", "WorkEmail");
+
+                    b.ToTable("onboarding_drafts", (string)null);
                 });
 
             modelBuilder.Entity("OnevoHr.Api.Models.Generated.AccessGrantRequest", b =>
@@ -2911,6 +3003,12 @@ namespace OnevoHr.Api.Data.Migrations
                     b.Property<int>("AttemptCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("BodyHtmlSnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BodyTextSnapshot")
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset?>("BouncedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -4785,6 +4883,12 @@ namespace OnevoHr.Api.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("ConfigJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("'{}'");
+
                     b.Property<Guid>("ConfiguredById")
                         .HasColumnType("uuid");
 
@@ -4793,7 +4897,7 @@ namespace OnevoHr.Api.Data.Migrations
 
                     b.Property<string>("CredentialsEncrypted")
                         .IsRequired()
-                        .HasColumnType("jsonb");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -8367,6 +8471,43 @@ namespace OnevoHr.Api.Data.Migrations
                     b.HasIndex("TenantId", "UserId");
 
                     b.ToTable("notifications", (string)null);
+                });
+
+            modelBuilder.Entity("OnevoHr.Api.Models.Notifications.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "CreatedAtUtc");
+
+                    b.ToTable("outbox_messages", (string)null);
                 });
 
             modelBuilder.Entity("OnevoHr.Api.Models.OrgStructure.Department", b =>

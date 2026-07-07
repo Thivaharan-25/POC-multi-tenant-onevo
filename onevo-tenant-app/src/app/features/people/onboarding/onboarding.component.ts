@@ -1,9 +1,10 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { BYPASS_GLOBAL_ERROR_HANDLING } from '../../../core/api/interceptors/error.interceptor';
 
 // -----------------------------------------------------------------------
 // Types matching the backend DTOs
@@ -507,10 +508,12 @@ export class OnboardingComponent implements OnInit {
       const deptFilter = this.draft.departmentId
         ? `&departmentId=${encodeURIComponent(this.draft.departmentId)}`
         : '';
+      const safeFetch = <T>(promise: Promise<T>, fallback: T) => promise.catch(() => fallback);
+      const bypassContext = { context: new HttpContext().set(BYPASS_GLOBAL_ERROR_HANDLING, true) };
       [this.departments, this.positions, this.schedules] = await Promise.all([
-        firstValueFrom(this.http.get<DepartmentOption[]>(`/api/v1/org/departments?legalEntityId=${le}`)),
-        firstValueFrom(this.http.get<PositionOption[]>(`/api/v1/org/positions?legalEntityId=${le}${deptFilter}`)),
-        firstValueFrom(this.http.get<WorkScheduleOption[]>(`/api/v1/time-attendance/work-schedules?legalEntityId=${le}`)),
+        safeFetch(firstValueFrom(this.http.get<DepartmentOption[]>(`/api/v1/org/departments?legalEntityId=${le}`, bypassContext)), []),
+        safeFetch(firstValueFrom(this.http.get<PositionOption[]>(`/api/v1/org/positions?legalEntityId=${le}${deptFilter}`, bypassContext)), []),
+        safeFetch(firstValueFrom(this.http.get<WorkScheduleOption[]>(`/api/v1/time-attendance/work-schedules?legalEntityId=${le}`, bypassContext)), []),
       ]);
       this.schedules = this.schedules.filter(s => s.isActive);
       this.lookupError = null;

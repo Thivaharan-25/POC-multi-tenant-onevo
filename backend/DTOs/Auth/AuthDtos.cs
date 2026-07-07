@@ -24,3 +24,15 @@ public sealed record SessionValidationDto(
     IReadOnlyCollection<string> Permissions);
 
 public sealed record ScopeResolutionDto(string ScopeLevel, IReadOnlyCollection<Guid> VisibleEmployeeIds);
+
+public sealed record SafeInvitationDto(
+    string InvitedEmail,
+    string InvitedFullName,
+    string[] AllowedCompletionMethods,
+    DateTimeOffset ExpiresAt,
+    string? TenantName);
+
+public sealed record AcceptInviteRequestDto(
+    string Token,
+    string Password,
+    string ConfirmPassword);

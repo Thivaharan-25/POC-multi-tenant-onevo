@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OnevoHr.Api.Data;
 using OnevoHr.Api.Models.Auth;
+using OnevoHr.Api.Models.Generated;
 using OnevoHr.Api.Repositories.Interfaces;
 
 namespace OnevoHr.Api.Repositories.Implementations;
@@ -50,6 +51,16 @@ public class UserRepository : IUserRepository
             s.SessionTokenHash == sessionTokenHash &&
             s.RevokedAtUtc == null &&
             s.ExpiresAtUtc > DateTime.UtcNow);
+    }
+
+    public async Task AddInvitationTokenAsync(InvitationToken token)
+    {
+        await _db.InvitationTokens.AddAsync(token);
+    }
+
+    public async Task<InvitationToken?> GetInvitationTokenByHashAsync(string tokenHash)
+    {
+        return await _db.InvitationTokens.FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
     }
 
     public async Task SaveChangesAsync()

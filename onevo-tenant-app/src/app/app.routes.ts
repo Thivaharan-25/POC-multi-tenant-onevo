@@ -11,7 +11,8 @@ export const routes: Routes = [
     canActivate: [guestGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'login' },
-      { path: 'login', loadComponent: () => import('./features/auth/login.component').then(m => m.LoginComponent) }
+      { path: 'login', loadComponent: () => import('./features/auth/login.component').then(m => m.LoginComponent) },
+      { path: 'accept-invite', loadComponent: () => import('./features/auth/accept-invite/accept-invite.component').then(m => m.AcceptInviteComponent) }
     ]
   },
   {
@@ -23,6 +24,7 @@ export const routes: Routes = [
       { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
       { path: 'my-profile', loadComponent: () => import('./features/my-profile/my-profile.component').then(m => m.MyProfileComponent) },
       { path: 'people', canActivate: [permissionGuard('employees:read')], loadComponent: () => import('./features/people/people.component').then(m => m.PeopleComponent) },
+      { path: 'people/onboarding', canActivate: [permissionGuard('employees:write')], loadComponent: () => import('./features/people/onboarding/onboarding.component').then(m => m.OnboardingComponent) },
       { path: 'time-off', canActivate: [permissionGuard('leave:create')], loadComponent: () => import('./features/leave/leave.component').then(m => m.LeaveComponent) },
       { path: 'time-attendance', loadComponent: () => import('./features/attendance/attendance.component').then(m => m.AttendanceComponent) },
       { path: 'calendar', canActivate: [permissionGuard('calendar:read')], loadComponent: () => import('./features/calendar/calendar.component').then(m => m.CalendarComponent) },

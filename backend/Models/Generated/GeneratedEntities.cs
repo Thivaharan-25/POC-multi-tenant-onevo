@@ -1899,6 +1899,9 @@ public class NotificationChannel
     public Guid TenantId { get; set; }
     public string ChannelType { get; set; } = string.Empty;
     public string Provider { get; set; } = string.Empty;
+    /// <summary>Non-secret provider metadata (fromEmail, fromName, replyToEmail).</summary>
+    public string ConfigJson { get; set; } = "{}";
+    /// <summary>Data Protection-encrypted provider secret (e.g. the raw SendGrid API key). Never logged, never returned by any API.</summary>
     public string CredentialsEncrypted { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public Guid ConfiguredById { get; set; }
@@ -1936,6 +1939,8 @@ public class EmailDeliveryLog
     public string Status { get; set; } = string.Empty;
     public int AttemptCount { get; set; }
     public string? LastError { get; set; }
+    public string? BodyHtmlSnapshot { get; set; }
+    public string? BodyTextSnapshot { get; set; }
     public DateTimeOffset? SentAt { get; set; }
     public DateTimeOffset? DeliveredAt { get; set; }
     public DateTimeOffset? BouncedAt { get; set; }

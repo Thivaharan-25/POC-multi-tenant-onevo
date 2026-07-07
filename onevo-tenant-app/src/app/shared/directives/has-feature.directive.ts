@@ -1,4 +1,4 @@
-import { Directive, Input, TemplateRef, ViewContainerRef, effect, inject } from '@angular/core';
+import { Directive, TemplateRef, ViewContainerRef, effect, inject, input } from '@angular/core';
 import { PermissionService } from '../../core/auth/permission.service';
 
 @Directive({
@@ -9,18 +9,15 @@ export class HasFeatureDirective {
   private permissions = inject(PermissionService);
   private template = inject(TemplateRef<unknown>);
   private view = inject(ViewContainerRef);
-  private feature = '';
+
+  hasFeature = input.required<string>();
 
   constructor() {
     effect(() => {
       this.view.clear();
-      if (this.feature && this.permissions.hasFeature(this.feature)()) {
+      if (this.permissions.hasFeature(this.hasFeature())) {
         this.view.createEmbeddedView(this.template);
       }
     });
-  }
-
-  @Input() set hasFeature(feature: string) {
-    this.feature = feature;
   }
 }

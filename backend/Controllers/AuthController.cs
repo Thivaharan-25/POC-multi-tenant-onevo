@@ -164,6 +164,62 @@ public sealed class AuthController : ControllerBase
         return Unauthorized(new { error = "No session cookie found." });
     }
 
+    [HttpGet("invitations/validate")]
+    public async Task<IActionResult> ValidateInvitation([FromQuery] string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return BadRequest(new { error = "Token is required." });
+        }
+
+        var result = await _authService.ValidateInvitationTokenAsync(token);
+        if (result == null)
+        {
+            return BadRequest(new { error = "Invalid, expired, or revoked invitation." });
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("invitations/accept")]
+    public async Task<IActionResult> AcceptInvitation([FromBody] AcceptInviteRequestDto request)
+    {
+        if (request.Password != request.ConfirmPassword)
+        {
+            return BadRequest(new { error = "Passwords do not match." });
+        }
+
+        AuthSessionResult? result;
+        try
+        {
+            result = await _authService.AcceptInvitationWithPasswordAsync(request.Token, request.Password);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+
+        if (result == null)
+        {
+            return BadRequest(new { error = "Invalid or expired invitation, or password not allowed." });
+        }
+
+        // Set HttpOnly session cookie
+        Response.Cookies.Append(CurrentUserMiddleware.TenantSessionCookie, result.SessionToken, GetSessionCookieOptions(result.ExpiresAtUtc));
+
+        // Set readable CSRF cookie
+        Response.Cookies.Append("onevo_csrf", result.CsrfToken, GetCsrfCookieOptions(result.ExpiresAtUtc));
+
+        var sessionDto = await BuildSessionDtoAsync(
+            result.TenantId,
+            result.UserId,
+            result.EmployeeId,
+            result.Email,
+            result.DisplayName);
+
+        return Ok(sessionDto);
+    }
+
     private async Task<SessionDto> BuildSessionDtoAsync(
         Guid tenantId,
         Guid userId,

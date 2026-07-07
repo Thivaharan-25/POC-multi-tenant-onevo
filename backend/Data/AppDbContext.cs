@@ -69,6 +69,7 @@ public class AppDbContext : DbContext
     // Employees
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<EmployeeAssignmentHistory> EmployeeAssignmentHistories => Set<EmployeeAssignmentHistory>();
+    public DbSet<OnboardingDraft> OnboardingDrafts => Set<OnboardingDraft>();
 
     // Templates
     public DbSet<RoleTemplate> RoleTemplates => Set<RoleTemplate>();
@@ -89,6 +90,7 @@ public class AppDbContext : DbContext
 
     // Notifications
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     // Generated Phase 1 DbSets
     public DbSet<Country> Countries => Set<Country>();
@@ -291,6 +293,14 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Employee>().ToTable("employees");
         modelBuilder.Entity<EmployeeAssignmentHistory>().ToTable("employee_assignment_history");
+        
+        modelBuilder.Entity<OnboardingDraft>().ToTable("onboarding_drafts");
+        modelBuilder.Entity<OnboardingDraft>()
+            .HasIndex(d => new { d.TenantId, d.Status });
+        modelBuilder.Entity<OnboardingDraft>()
+            .HasIndex(d => new { d.TenantId, d.WorkEmail });
+        modelBuilder.Entity<OnboardingDraft>()
+            .HasIndex(d => new { d.TenantId, d.StartedById });
 
         modelBuilder.Entity<RoleTemplate>().ToTable("role_templates");
         modelBuilder.Entity<RoleTemplate>().Property(x => x.PermissionCodesJson).HasColumnType("jsonb");
@@ -308,6 +318,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ExternalCalendarEventLink>().ToTable("external_calendar_event_links");
 
         modelBuilder.Entity<Notification>().ToTable("notifications");
+
+        modelBuilder.Entity<OutboxMessage>().ToTable("outbox_messages");
+        modelBuilder.Entity<OutboxMessage>().Property(m => m.PayloadJson).HasColumnType("jsonb");
+        modelBuilder.Entity<OutboxMessage>()
+            .HasIndex(m => new { m.Status, m.CreatedAtUtc });
+
         modelBuilder.Entity<PlatformUserInvite>().ToTable("platform_user_invites");
 
         // Cross-module Developer Platform tables not enumerated in the 199-table
