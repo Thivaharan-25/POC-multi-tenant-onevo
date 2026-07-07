@@ -20,9 +20,9 @@ public sealed class PositionsController : ControllerBase
 
     [HttpGet]
     [RequirePermission("org:positions:read")]
-    public async Task<IActionResult> List()
+    public async Task<IActionResult> List([FromQuery] Guid? legalEntityId, [FromQuery] Guid? departmentId)
     {
-        var positions = await _orgStructure.GetPositionsAsync(_tenantContext.TenantId!.Value);
+        var positions = await _orgStructure.GetPositionsAsync(_tenantContext.TenantId!.Value, legalEntityId, departmentId);
         return Ok(positions);
     }
 

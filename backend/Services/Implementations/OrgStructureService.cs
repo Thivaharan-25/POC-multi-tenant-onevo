@@ -27,9 +27,9 @@ public class OrgStructureService : IOrgStructureService
             d.Id, d.LegalEntityId, d.Name, d.Code, d.ParentDepartmentId, d.HeadPositionId, d.Status)).ToList();
     }
 
-    public async Task<List<PositionDto>> GetPositionsAsync(Guid tenantId)
+    public async Task<List<PositionDto>> GetPositionsAsync(Guid tenantId, Guid? legalEntityId, Guid? departmentId)
     {
-        var positions = await _org.GetPositionsAsync(tenantId);
+        var positions = await _org.GetPositionsAsync(tenantId, legalEntityId, departmentId);
         return positions.Select(Map).ToList();
     }
 

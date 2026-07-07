@@ -147,4 +147,49 @@ public class OrgLookupTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Contains(unfiltered, d => d.LegalEntityId == mainLeId);
         Assert.Contains(unfiltered, d => d.LegalEntityId == euLe.Id);
     }
+
+    // ------------------------------------------------------------------
+    // Positions
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task Positions_FilteredByLegalEntityAndDepartment_ReturnsOnlyMatching()
+    {
+        await AuthenticateAsHrAdmin();
+        var (tenantId, _) = await GetAcmeContextAsync();
+        var (euLe, euDept, euPos) = await SeedSecondLegalEntityAsync(tenantId);
+
+        var byLe = await _client.GetFromJsonAsync<PositionItem[]>(
+            $"/api/v1/org/positions?legalEntityId={euLe.Id}");
+        Assert.NotNull(byLe);
+        Assert.NotEmpty(byLe);
+        Assert.All(byLe, p => Assert.Equal(euLe.Id, p.LegalEntityId));
+        Assert.Contains(byLe, p => p.Id == euPos.Id);
+
+        var byDept = await _client.GetFromJsonAsync<PositionItem[]>(
+            $"/api/v1/org/positions?legalEntityId={euLe.Id}&departmentId={euDept.Id}");
+        Assert.NotNull(byDept);
+        Assert.All(byDept, p => Assert.Equal(euDept.Id, p.DepartmentId));
+        Assert.Contains(byDept, p => p.Id == euPos.Id);
+
+        // Filtering by a department with no positions returns an empty list.
+        var db = GetDb();
+        var emptyDept = new Department
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LegalEntityId = euLe.Id,
+            Name = $"Empty Dept {Guid.NewGuid():N}",
+            Code = $"EMPTY_{Guid.NewGuid().ToString("N").Substring(0, 6)}",
+            Status = "active",
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        db.Departments.Add(emptyDept);
+        await db.SaveChangesAsync();
+
+        var empty = await _client.GetFromJsonAsync<PositionItem[]>(
+            $"/api/v1/org/positions?legalEntityId={euLe.Id}&departmentId={emptyDept.Id}");
+        Assert.NotNull(empty);
+        Assert.Empty(empty);
+    }
 }

@@ -49,11 +49,23 @@ public class OrgRepository : IOrgRepository
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 
-    public async Task<List<Position>> GetPositionsAsync(Guid tenantId)
+    public async Task<List<Position>> GetPositionsAsync(Guid tenantId, Guid? legalEntityId, Guid? departmentId)
     {
-        return await _db.Positions.AsNoTracking()
+        var query = _db.Positions.AsNoTracking()
             .Include(p => p.PositionAssignments)
-            .Where(p => p.TenantId == tenantId)
+            .Where(p => p.TenantId == tenantId);
+
+        if (legalEntityId.HasValue)
+        {
+            query = query.Where(p => p.LegalEntityId == legalEntityId.Value);
+        }
+
+        if (departmentId.HasValue)
+        {
+            query = query.Where(p => p.DepartmentId == departmentId.Value);
+        }
+
+        return await query
             .OrderBy(p => p.Name)
             .ToListAsync();
     }
