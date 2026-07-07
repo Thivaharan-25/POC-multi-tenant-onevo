@@ -85,7 +85,13 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IOutboxService, OutboxService>();
 builder.Services.AddScoped<IOnboardingService, OnboardingService>();
 builder.Services.AddScoped<IEmailOutboxProcessorService, EmailOutboxProcessorService>();
+// OutboxPublisherService: generic outbox_messages queue only.
 builder.Services.AddHostedService<OutboxPublisherService>();
+// EmailOutboxBackgroundService: email_delivery_logs queue only. This is what
+// actually sends queued onboarding invite emails automatically; the
+// /api/v1/outbox/process-emails endpoint stays available as a manual
+// dev/admin trigger for the same IEmailOutboxProcessorService.
+builder.Services.AddHostedService<EmailOutboxBackgroundService>();
 
 // Email sending. The Email section holds only non-secret settings
 // (FrontendBaseUrl). SendGrid provider config — including the API key — lives

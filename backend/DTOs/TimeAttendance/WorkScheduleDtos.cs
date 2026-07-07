@@ -5,4 +5,5 @@ public sealed record WorkScheduleDto(
     Guid LegalEntityId,
     string Name,
     string Timezone,
-    bool IsActive);
+    bool IsActive,
+    bool DefaultForNewEmployee);

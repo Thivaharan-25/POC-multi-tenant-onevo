@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using OnevoHr.Api.DTOs;
+using OnevoHr.Api.DTOs.Onboarding;
 using OnevoHr.Api.Models.Employees;
 
 namespace OnevoHr.Api.Services.Interfaces;
@@ -21,4 +23,7 @@ public interface IOnboardingService
     Task<DraftActionResponse> RequestSeatAsync(Guid id, CancellationToken ct);
     Task<DraftActionResponse> SubmitPositionApprovalAsync(Guid id, CancellationToken ct);
     Task<SendInviteResponse> SendInviteAsync(Guid id, CancellationToken ct);
+    Task<ChecklistTemplateListResponse> GetChecklistTemplatesAsync(Guid? departmentId, CancellationToken ct);
+    Task<ChecklistTemplateDetailDto?> GetChecklistTemplateDetailAsync(Guid templateId, CancellationToken ct);
+    Task<List<MyDraftSummaryDto>> GetMyDraftsAsync(CancellationToken ct);
 }

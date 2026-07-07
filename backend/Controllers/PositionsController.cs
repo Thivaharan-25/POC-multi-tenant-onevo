@@ -38,4 +38,17 @@ public sealed class PositionsController : ControllerBase
 
         return Ok(position);
     }
+
+    [HttpGet("{id:guid}/reporting-manager")]
+    [RequirePermission("org:positions:read")]
+    public async Task<IActionResult> GetReportingManager(Guid id, CancellationToken ct)
+    {
+        var manager = await _orgStructure.GetReportingManagerAsync(_tenantContext.TenantId!.Value, id);
+        if (manager == null)
+        {
+            return Ok(new { hasManager = false });
+        }
+
+        return Ok(new { hasManager = true, employeeId = manager.EmployeeId, employeeName = manager.EmployeeName });
+    }
 }

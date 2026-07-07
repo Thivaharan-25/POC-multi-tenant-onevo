@@ -23,8 +23,16 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
       { path: 'my-profile', loadComponent: () => import('./features/my-profile/my-profile.component').then(m => m.MyProfileComponent) },
-      { path: 'people', canActivate: [permissionGuard('employees:read')], loadComponent: () => import('./features/people/people.component').then(m => m.PeopleComponent) },
-      { path: 'people/onboarding', canActivate: [permissionGuard('employees:write')], loadComponent: () => import('./features/people/onboarding/onboarding.component').then(m => m.OnboardingComponent) },
+      { 
+        path: 'people',
+        loadComponent: () => import('./features/people/people-shell.component').then(m => m.PeopleShellComponent),
+        children: [
+          { path: '', pathMatch: 'full', canActivate: [permissionGuard('employees:read')], loadComponent: () => import('./features/people/people.component').then(m => m.PeopleComponent) },
+          { path: 'onboarding', canActivate: [permissionGuard('employees:write')], loadComponent: () => import('./features/people/onboarding/onboarding.component').then(m => m.OnboardingComponent) },
+          { path: 'offboarding', canActivate: [permissionGuard('employees:write')], loadComponent: () => import('./features/people/offboarding/offboarding.component').then(m => m.OffboardingComponent) },
+          { path: 'checklist', loadComponent: () => import('./features/people/checklist/checklist.component').then(m => m.ChecklistComponent) }
+        ]
+      },
       { path: 'time-off', canActivate: [permissionGuard('leave:create')], loadComponent: () => import('./features/leave/leave.component').then(m => m.LeaveComponent) },
       { path: 'time-attendance', loadComponent: () => import('./features/attendance/attendance.component').then(m => m.AttendanceComponent) },
       { path: 'calendar', canActivate: [permissionGuard('calendar:read')], loadComponent: () => import('./features/calendar/calendar.component').then(m => m.CalendarComponent) },
@@ -33,7 +41,15 @@ export const routes: Routes = [
       { path: 'organization/legal-entities', canActivate: [permissionGuard('org:legal-entities:manage')], loadComponent: () => import('./features/organization/legal-entities/legal-entities.component').then(m => m.LegalEntitiesComponent) },
       { path: 'organization/departments', canActivate: [permissionGuard('org:departments:manage')], loadComponent: () => import('./features/organization/departments/departments.component').then(m => m.DepartmentsComponent) },
       { path: 'organization/positions', canActivate: [permissionGuard('org:positions:manage')], loadComponent: () => import('./features/organization/positions/positions.component').then(m => m.PositionsComponent) },
-      { path: 'settings/roles-permissions', canActivate: [permissionGuard('roles:manage')], loadComponent: () => import('./features/settings/roles-permissions/roles-permissions.component').then(m => m.RolesPermissionsComponent) },
+      {
+        path: 'settings',
+        loadComponent: () => import('./features/settings/settings-shell.component').then(m => m.SettingsShellComponent),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'appearance' },
+          { path: 'appearance', loadComponent: () => import('./features/settings/appearance/appearance.component').then(m => m.AppearanceComponent) },
+          { path: 'roles-permissions', canActivate: [permissionGuard('roles:manage')], loadComponent: () => import('./features/settings/roles-permissions/roles-permissions.component').then(m => m.RolesPermissionsComponent) }
+        ]
+      },
       { path: 'reports', loadComponent: () => import('./features/reports/reports.component').then(m => m.ReportsComponent) }
     ]
   },

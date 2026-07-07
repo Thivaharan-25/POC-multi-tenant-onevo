@@ -39,13 +39,27 @@ public class OnboardingController : ControllerBase
     /// Resume a draft. Enforces tenant isolation — only returns drafts owned by the
     /// current tenant. Returns 404 if not found or owned by a different tenant.
     /// </summary>
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     [RequirePermission("employees:write")]
     public async Task<IActionResult> GetDraft(Guid id, CancellationToken ct)
     {
         var draft = await _onboardingService.GetDraftAsync(id, ct);
         if (draft == null) return NotFound();
         return Ok(draft);
+    }
+
+    /// <summary>
+    /// GET /api/v1/onboarding/drafts/mine
+    /// Returns only draft-status onboarding drafts started by the current session
+    /// user in the current tenant. Tenant and user are resolved server-side from
+    /// ICurrentUserService — never from query or body.
+    /// </summary>
+    [HttpGet("mine")]
+    [RequirePermission("employees:write")]
+    public async Task<IActionResult> GetMyDrafts(CancellationToken ct)
+    {
+        var drafts = await _onboardingService.GetMyDraftsAsync(ct);
+        return Ok(drafts);
     }
 
     /// <summary>

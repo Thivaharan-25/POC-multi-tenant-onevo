@@ -1,6 +1,14 @@
 namespace OnevoHr.Api.DTOs.OrgStructure;
 
-public sealed record LegalEntityDto(Guid Id, string Name, string Code, string Status);
+public sealed record LegalEntityDto(
+    Guid Id, 
+    string Name, 
+    string Code, 
+    string Status,
+    string Country,
+    string Currency,
+    string Timezone,
+    string Address);
 
 public sealed record DepartmentDto(
     Guid Id,
@@ -19,3 +27,5 @@ public sealed record CreatePositionRequestDto(
     Guid? ReportsToPositionId,
     int Capacity,
     string PositionType);
+
+public sealed record ReportingManagerDto(Guid EmployeeId, string EmployeeName);

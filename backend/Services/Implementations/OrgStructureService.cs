@@ -1,3 +1,4 @@
+using OnevoHr.Api.Models.Generated;
 using OnevoHr.Api.DTOs.OrgStructure;
 using OnevoHr.Api.Models.OrgStructure;
 using OnevoHr.Api.Repositories.Interfaces;
@@ -8,16 +9,92 @@ namespace OnevoHr.Api.Services.Implementations;
 public class OrgStructureService : IOrgStructureService
 {
     private readonly IOrgRepository _org;
+    private readonly IEmployeeRepository _employees;
+    private readonly IWorkScheduleRepository _workSchedules;
 
-    public OrgStructureService(IOrgRepository org)
+    public OrgStructureService(IOrgRepository org, IEmployeeRepository employees, IWorkScheduleRepository workSchedules)
     {
         _org = org;
+        _employees = employees;
+        _workSchedules = workSchedules;
     }
 
     public async Task<List<LegalEntityDto>> GetLegalEntitiesAsync(Guid tenantId)
     {
         var entities = await _org.GetLegalEntitiesAsync(tenantId);
-        return entities.Select(l => new LegalEntityDto(l.Id, l.Name, l.Code, l.Status)).ToList();
+        return entities.Select(l => new LegalEntityDto(
+            l.Id, l.Name, l.Code, l.Status, 
+            l.Country, l.Currency, l.Timezone, l.Address)).ToList();
+    }
+
+    public async Task<LegalEntityDto> CreateLegalEntityAsync(Guid tenantId, CreateLegalEntityRequestDto request)
+    {
+        var now = DateTime.UtcNow;
+        var entity = new LegalEntity
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Name = request.Name,
+            Code = request.Code,
+            Country = request.Country,
+            Currency = request.Currency,
+            Timezone = request.Timezone,
+            Address = request.Address,
+            Status = request.Status,
+            CreatedAtUtc = now
+        };
+
+        await _org.AddLegalEntityAsync(entity);
+
+        // Auto-seed default department
+        var dept = new Department
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LegalEntityId = entity.Id,
+            Name = "General",
+            Code = "GEN",
+            Status = "active",
+            CreatedAtUtc = now
+        };
+        await _org.AddDepartmentAsync(dept);
+
+        // Auto-seed default position
+        var pos = new Position
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LegalEntityId = entity.Id,
+            DepartmentId = dept.Id,
+            Name = "Manager",
+            Code = "MGR",
+            Capacity = 1,
+            PositionType = "unique",
+            Status = "active",
+            CreatedAtUtc = now
+        };
+        await _org.AddPositionAsync(pos);
+
+        // Auto-seed default work schedule
+        var schedule = new WorkSchedule
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LegalEntityId = entity.Id,
+            Name = "Standard Weekday (Mon–Fri)",
+            Timezone = entity.Timezone,
+            DefaultForNewEmployee = true,
+            IsActive = true,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        await _workSchedules.AddWorkScheduleAsync(schedule);
+
+        await _org.SaveChangesAsync();
+
+        return new LegalEntityDto(
+            entity.Id, entity.Name, entity.Code, entity.Status,
+            entity.Country, entity.Currency, entity.Timezone, entity.Address);
     }
 
     public async Task<List<DepartmentDto>> GetDepartmentsAsync(Guid tenantId, Guid? legalEntityId)
@@ -81,6 +158,30 @@ public class OrgStructureService : IOrgStructureService
 
         await _org.SaveChangesAsync();
         return Map(position);
+    }
+
+    public async Task<ReportingManagerDto?> GetReportingManagerAsync(Guid tenantId, Guid positionId)
+    {
+        var position = await _org.GetPositionByIdAsync(positionId);
+        if (position == null || position.TenantId != tenantId || position.ReportsToPositionId is not Guid managerPositionId)
+        {
+            return null;
+        }
+
+        var assignments = await _org.GetActiveAssignmentsForPositionAsync(managerPositionId);
+        var assignment = assignments.FirstOrDefault(a => a.IsPrimary) ?? assignments.FirstOrDefault();
+        if (assignment == null)
+        {
+            return null;
+        }
+
+        var employee = await _employees.GetByIdAsync(assignment.EmployeeId);
+        if (employee == null || employee.TenantId != tenantId)
+        {
+            return null;
+        }
+
+        return new ReportingManagerDto(employee.Id, employee.FirstName + " " + employee.LastName);
     }
 
     private static PositionDto Map(Position p)
