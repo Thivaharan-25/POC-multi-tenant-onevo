@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OnevoHr.Api.Data;
 using OnevoHr.Api.Data.Seed;
+using OnevoHr.Api.Models.Generated;
 using OnevoHr.Api.Models.OrgStructure;
 using OnevoHr.Api.Services.Interfaces;
 using OnevoHr.Api.Tests.TestInfrastructure;
@@ -191,5 +192,96 @@ public class OrgLookupTests : IClassFixture<CustomWebApplicationFactory>
             $"/api/v1/org/positions?legalEntityId={euLe.Id}&departmentId={emptyDept.Id}");
         Assert.NotNull(empty);
         Assert.Empty(empty);
+    }
+
+    // ------------------------------------------------------------------
+    // Work schedules
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task WorkSchedules_Unauthenticated_Returns401()
+    {
+        // Ensure seed exists but do NOT log in on this client.
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        if (!await db.PlatformUsers.AnyAsync())
+        {
+            var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+            await DatabaseSeeder.SeedAsync(db, hasher);
+        }
+
+        var anonymousClient = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            HandleCookies = true,
+            BaseAddress = new Uri("https://localhost")
+        });
+        anonymousClient.DefaultRequestHeaders.Add("X-Tenant-Domain", "acme.test");
+
+        var response = await anonymousClient.GetAsync("/api/v1/time-attendance/work-schedules");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task WorkSchedules_FilteredByLegalEntity_And_TenantIsolated()
+    {
+        await AuthenticateAsHrAdmin();
+        var (tenantId, mainLeId) = await GetAcmeContextAsync();
+
+        var db = GetDb();
+        var suffix = Guid.NewGuid().ToString("N").Substring(0, 8);
+
+        var mainSchedule = new WorkSchedule
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LegalEntityId = mainLeId,
+            Name = $"Main LE Schedule {suffix}",
+            Timezone = "UTC",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+        // Schedule for a different legal entity in the same tenant — must be
+        // excluded when filtering by mainLeId.
+        var (euLe, _, _) = await SeedSecondLegalEntityAsync(tenantId);
+        var otherLeSchedule = new WorkSchedule
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            LegalEntityId = euLe.Id,
+            Name = $"EU Schedule {suffix}",
+            Timezone = "UTC",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+        // Schedule belonging to a completely different tenant — must never appear.
+        var foreignSchedule = new WorkSchedule
+        {
+            Id = Guid.NewGuid(),
+            TenantId = Guid.NewGuid(),
+            LegalEntityId = Guid.NewGuid(),
+            Name = $"Foreign Tenant Schedule {suffix}",
+            Timezone = "UTC",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+        db.WorkSchedules.AddRange(mainSchedule, otherLeSchedule, foreignSchedule);
+        await db.SaveChangesAsync();
+
+        var filtered = await _client.GetFromJsonAsync<WorkScheduleItem[]>(
+            $"/api/v1/time-attendance/work-schedules?legalEntityId={mainLeId}");
+        Assert.NotNull(filtered);
+        Assert.All(filtered, s => Assert.Equal(mainLeId, s.LegalEntityId));
+        Assert.Contains(filtered, s => s.Id == mainSchedule.Id);
+        Assert.DoesNotContain(filtered, s => s.Id == otherLeSchedule.Id);
+        Assert.DoesNotContain(filtered, s => s.Id == foreignSchedule.Id);
+
+        var all = await _client.GetFromJsonAsync<WorkScheduleItem[]>(
+            "/api/v1/time-attendance/work-schedules");
+        Assert.NotNull(all);
+        Assert.Contains(all, s => s.Id == otherLeSchedule.Id);
+        Assert.DoesNotContain(all, s => s.Id == foreignSchedule.Id);
     }
 }
