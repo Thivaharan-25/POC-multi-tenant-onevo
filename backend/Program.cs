@@ -57,12 +57,19 @@ builder.Services.AddScoped<IPlatformUserRepository, PlatformUserRepository>();
 builder.Services.AddScoped<IOnboardingRepository, OnboardingRepository>();
 builder.Services.AddScoped<IEmailDeliveryLogRepository, EmailDeliveryLogRepository>();
 builder.Services.AddScoped<INotificationChannelRepository, NotificationChannelRepository>();
+builder.Services.AddScoped<IAgentPairingRepository, AgentPairingRepository>();
+builder.Services.AddScoped<IAgentActivityRepository, AgentActivityRepository>();
 
 // Services
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddSingleton<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<ITenantContextService, TenantContextService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IDevicePairingService, DevicePairingService>();
+builder.Services.AddScoped<IAgentEnrollmentService, AgentEnrollmentService>();
+builder.Services.AddScoped<IDeviceTokenAuthContext, DeviceTokenAuthContext>();
+builder.Services.AddScoped<IAgentActivityService, AgentActivityService>();
 builder.Services.AddScoped<IPlatformAuthService, PlatformAuthService>();
 builder.Services.AddScoped<IDemoRequestService, DemoRequestService>();
 builder.Services.AddScoped<IDemoApprovalService, DemoApprovalService>();
@@ -142,6 +149,7 @@ app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseMiddleware<CsrfMiddleware>();
 app.UseMiddleware<AuthBoundaryMiddleware>();
+app.UseMiddleware<DeviceTokenAuthMiddleware>();
 
 app.MapControllers();
 

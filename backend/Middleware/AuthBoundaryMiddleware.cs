@@ -24,8 +24,15 @@ public sealed class AuthBoundaryMiddleware
         // 1. Enforce tenant authentication for /api requests
         if (path.StartsWithSegments("/api"))
         {
-            // Allow anonymous access to auth endpoints
-            if (!path.StartsWithSegments("/api/v1/auth"))
+            // Allow anonymous access to auth endpoints, the device-pairing
+            // handshake (the tray app has no session before it is enrolled;
+            // /api/v1/devices/confirm/* is the authenticated counterpart and
+            // stays protected), and the agent-authenticated routes (these use
+            // DeviceTokenAuthMiddleware's Bearer deviceToken instead of a
+            // cookie session).
+            if (!path.StartsWithSegments("/api/v1/auth")
+                && !path.StartsWithSegments("/api/v1/devices/pair")
+                && !path.StartsWithSegments("/api/v1/agent"))
             {
                 // Reject if not authenticated or if a platform session is somehow mixed in
                 if (!currentUser.IsAuthenticated || !context.Items.ContainsKey(CurrentUserMiddleware.SessionItemKey))

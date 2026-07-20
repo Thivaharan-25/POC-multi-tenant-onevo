@@ -1,5 +1,6 @@
 using OnevoHr.Api.Models.Generated;
 using Microsoft.EntityFrameworkCore;
+using OnevoHr.Api.Models.Agents;
 using OnevoHr.Api.Models.Auth;
 using OnevoHr.Api.Models.Calendar;
 using OnevoHr.Api.Models.Catalog;
@@ -248,6 +249,12 @@ public class AppDbContext : DbContext
     public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
     public DbSet<PlatformUserInvite> PlatformUserInvites => Set<PlatformUserInvite>();
 
+    // Device pairing (see docs/superpowers/specs/2026-07-09-device-pairing-flow-design.md)
+    public DbSet<AgentPairingRequest> AgentPairingRequests => Set<AgentPairingRequest>();
+
+    // Clock in/out + app usage tracking (see docs/superpowers/specs/2026-07-09-clock-in-app-usage-tracking-design.md)
+    public DbSet<AgentClockState> AgentClockStates => Set<AgentClockState>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -325,6 +332,26 @@ public class AppDbContext : DbContext
             .HasIndex(m => new { m.Status, m.CreatedAtUtc });
 
         modelBuilder.Entity<PlatformUserInvite>().ToTable("platform_user_invites");
+
+        // Table name was previously implicit; making it explicit to match the
+        // registered_agents table created by the AddRemainingPhase1Entities migration.
+        modelBuilder.Entity<RegisteredAgent>().ToTable("registered_agents");
+        modelBuilder.Entity<RegisteredAgent>().HasIndex(a => a.TenantId);
+
+        modelBuilder.Entity<AgentPairingRequest>().ToTable("agent_pairing_requests");
+        modelBuilder.Entity<AgentPairingRequest>().Property(p => p.Status).HasConversion<string>();
+        modelBuilder.Entity<AgentPairingRequest>().HasIndex(p => p.UserCodeHash).IsUnique();
+        modelBuilder.Entity<AgentPairingRequest>().HasIndex(p => p.DeviceCodeHash).IsUnique();
+
+        modelBuilder.Entity<AgentClockState>().ToTable("agent_clock_states");
+        modelBuilder.Entity<AgentClockState>().HasIndex(c => c.RegisteredAgentId).IsUnique();
+
+        // Table name was previously implicit; making it explicit to match the
+        // application_usage table created by the AddRemainingPhase1Entities migration.
+        modelBuilder.Entity<Models.Generated.ApplicationUsage>().ToTable("application_usage");
+        modelBuilder.Entity<Models.Generated.ApplicationUsage>().HasIndex(a => a.TenantId);
+        modelBuilder.Entity<Models.Generated.ApplicationUsage>()
+            .HasIndex(a => new { a.TenantId, a.EmployeeId, a.Date, a.ApplicationName });
 
         // Cross-module Developer Platform tables not enumerated in the 199-table
         // Phase 1 inventory (database/phase1-table-inventory.md), but documented in

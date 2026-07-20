@@ -1735,6 +1735,11 @@ public class RegisteredAgent
     public string Status { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+
+    // Added for the tray app device pairing flow (2026-07-09-device-pairing-flow-design.md).
+    // Hash of the opaque bearer token issued to the tray app at enrollment; null for agents
+    // registered through any other future path.
+    public string? DeviceTokenHash { get; set; }
 }
 
 public class AgentSession

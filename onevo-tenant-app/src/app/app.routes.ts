@@ -38,6 +38,7 @@ export const routes: Routes = [
       { path: 'calendar', canActivate: [permissionGuard('calendar:read')], loadComponent: () => import('./features/calendar/calendar.component').then(m => m.CalendarComponent) },
       { path: 'inbox', loadComponent: () => import('./features/notifications/notifications.component').then(m => m.NotificationsComponent) },
       { path: 'monitoring', loadComponent: () => import('./features/monitoring/monitoring.component').then(m => m.MonitoringComponent) },
+      { path: 'devices/confirm', loadComponent: () => import('./features/devices/device-confirm.component').then(m => m.DeviceConfirmComponent) },
       { path: 'organization/legal-entities', canActivate: [permissionGuard('org:legal-entities:manage')], loadComponent: () => import('./features/organization/legal-entities/legal-entities.component').then(m => m.LegalEntitiesComponent) },
       { path: 'organization/departments', canActivate: [permissionGuard('org:departments:manage')], loadComponent: () => import('./features/organization/departments/departments.component').then(m => m.DepartmentsComponent) },
       { path: 'organization/positions', canActivate: [permissionGuard('org:positions:manage')], loadComponent: () => import('./features/organization/positions/positions.component').then(m => m.PositionsComponent) },

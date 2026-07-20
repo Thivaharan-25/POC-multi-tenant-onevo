@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OnevoHr.Api.Data;
@@ -11,9 +12,11 @@ using OnevoHr.Api.Data;
 namespace OnevoHr.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260709150922_AddAgentPairingRequests")]
+    partial class AddAgentPairingRequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,48 +25,10 @@ namespace OnevoHr.Api.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("OnevoHr.Api.Models.Agents.AgentClockState", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("ClockedInAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("ClockedOutAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsClockedIn")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("RegisteredAgentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RegisteredAgentId")
-                        .IsUnique();
-
-                    b.ToTable("agent_clock_states", (string)null);
-                });
-
             modelBuilder.Entity("OnevoHr.Api.Models.Agents.AgentPairingRequest", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AuthorizationCodeHash")
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("ClientDeviceId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("ConfirmedAt")
@@ -1845,8 +1810,6 @@ namespace OnevoHr.Api.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("TenantId");
-
-                    b.HasIndex("TenantId", "EmployeeId", "Date", "ApplicationName");
 
                     b.ToTable("application_usage", (string)null);
                 });
